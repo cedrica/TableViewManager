@@ -313,42 +313,36 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 					|| att.getType().isAssignableFrom(SimpleStringProperty.class)) {
 				// associate data to column using setCellValueFactory
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn());
 				if (!listeExclude.contains(att.getName())) {
 					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(int.class)
 					|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
 					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(long.class)
 					|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Long>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new LongStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
 					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(double.class)
 					|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Double>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
 					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(float.class)
 					|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new FloatStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
 					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(Date.class)
 					|| att.getType().isAssignableFrom(ObjectProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new DateStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
 					listOfColumns.add(tableColumn);
 				}
