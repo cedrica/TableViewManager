@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sun.javafx.scene.layout.region.Margins.Converter;
+
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleFloatProperty;
@@ -27,14 +29,18 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.Tab;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.util.Callback;
+import javafx.util.StringConverter;
 import javafx.util.converter.DateStringConverter;
 import javafx.util.converter.DoubleStringConverter;
 import javafx.util.converter.FloatStringConverter;
@@ -42,17 +48,17 @@ import javafx.util.converter.IntegerStringConverter;
 import javafx.util.converter.LongStringConverter;
 
 @SuppressWarnings("all")
-public class TableViewManager<T> {
+public class TableViewManager<T> implements ITableViewManager<T> {
 	private TableView tableView;
-	private TableColumn tableColumn;
-	private List<TableColumn> listOfColumnsTitle;
+	private TableColumnHelper tableColumn;
+	private List<TableColumnHelper> listOfColumns;
 	private boolean isUpdatable;
 	private static Logger logger = null;
 	private String[] listExcludedColumns = null;
 
 	public TableViewManager(TableView tableView) {
 		this.tableView = tableView;
-		listOfColumnsTitle = new ArrayList<TableColumn>();
+		listOfColumns = new ArrayList<TableColumnHelper>();
 		logger = Logger.getLogger(this.getClass().getSimpleName());
 	}
 
@@ -68,55 +74,56 @@ public class TableViewManager<T> {
 	}
 
 	/**
-	 * This function initialize table columns which belong to the same Object
+	 * This function initialize table columns of a POJO.
 	 *
 	 * @param columnsTitle
 	 * @param entity
 	 */
-	public void initColumnTitleAndAssociateData(Class entity) {
-		listOfColumnsTitle = new ArrayList<TableColumn>();
+	public void initColumnSetValueFactory(Class entity) {
+		listOfColumns = new ArrayList<TableColumnHelper>();
 		Field[] attributes = entity.getDeclaredFields();
 		int i = 0;
 		StringBuilder sb = new StringBuilder();
 		for (Field att : attributes) {
-			tableColumn = new TableColumn(att.getName());
-			if (att.getType().isAssignableFrom(String.class) || att.getType().isAssignableFrom(SimpleStringProperty.class)) {
+			tableColumn = new TableColumnHelper(att.getName());
+			if (att.getType().isAssignableFrom(String.class)
+					|| att.getType().isAssignableFrom(SimpleStringProperty.class)) {
 				// associate data to column using setCellValueFactory
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn());
-				listOfColumnsTitle.add(tableColumn);
+				tableColumn.setConverterClazz(StringConverter.class);
+				listOfColumns.add(tableColumn);
 			} else if (att.getType().isAssignableFrom(Integer.class)
 					|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.<T, Integer> forTableColumn(new IntegerStringConverter()));
-				listOfColumnsTitle.add(tableColumn);
+				tableColumn.setConverterClazz(IntegerStringConverter.class);
+				listOfColumns.add(tableColumn);
 			} else if (att.getType().isAssignableFrom(Long.class)
 					|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Long>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.<T, Long> forTableColumn(new LongStringConverter()));
-				listOfColumnsTitle.add(tableColumn);
+				tableColumn.setConverterClazz(LongStringConverter.class);
+				listOfColumns.add(tableColumn);
 			} else if (att.getType().isAssignableFrom(Double.class)
 					|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Double>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.<T, Double> forTableColumn(new DoubleStringConverter()));
-				listOfColumnsTitle.add(tableColumn);
+				tableColumn.setConverterClazz(DoubleStringConverter.class);
+				listOfColumns.add(tableColumn);
 			} else if (att.getType().isAssignableFrom(Date.class)
 					|| att.getType().isAssignableFrom(ObjectProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.<T, Date> forTableColumn(new DateStringConverter()));
-				listOfColumnsTitle.add(tableColumn);
+				tableColumn.setConverterClazz(DateStringConverter.class);
+				listOfColumns.add(tableColumn);
 			} else if (att.getType().isAssignableFrom(Float.class)
 					|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(attributes[i++].getName()));
-				tableColumn.setCellFactory(TextFieldTableCell.<T, Float> forTableColumn(new FloatStringConverter()));
-				listOfColumnsTitle.add(tableColumn);
+				tableColumn.setConverterClazz(FloatStringConverter.class);
+				listOfColumns.add(tableColumn);
 			}
 			sb.append(tableColumn.getText() + " , ");
 		}
 		sb.toString().trim();
 		logger.log(Level.INFO, "Columns initialised [" + sb.toString() + "]");
 		this.tableView.getColumns().clear();
-		this.tableView.getColumns().setAll(listOfColumnsTitle);
+		this.tableView.getColumns().setAll(listOfColumns);
 	}
 
 	/**
@@ -257,80 +264,85 @@ public class TableViewManager<T> {
 	 * correspond to the given class for Combobox Object you first have to
 	 *
 	 * @param columnName
-	 * @param componentClass: the class of the components category you want to display in the table i.e. Button.class
+	 * @param componentClass:
+	 *            the class of the components category you want to display in
+	 *            the table i.e. Button.class
 	 * @param serviceClass:
-	 *            use by reflexion to  execute the
-	 *            function having the same name as method argument
+	 *            use by reflexion to execute the function having the same name
+	 *            as method argument
 	 * @param method
-	 * @param itemListForListComponent: i.e. combobox does not have a other Eventhandler as Button
+	 * @param itemListForListComponent:
+	 *            i.e. combobox does not have a other Eventhandler as Button
 	 */
 	public void assignCellFactoryToSpecificColumn(String columnName, Class componentClass, Class serviceClass,
 			String method, List<String>... itemListForListComponent) {
-		for (TableColumn column : listOfColumnsTitle) {
+		for (TableColumn column : listOfColumns) {
 			if (column.getText().equals(columnName)) {
 				assignGraphic(column, componentClass, serviceClass, method, itemListForListComponent);
 			}
 		}
 		tableView.getColumns().clear();
-		tableView.getColumns().addAll(listOfColumnsTitle);
+		tableView.getColumns().addAll(listOfColumns);
 	}
 
 	/**
 	 * hide the given columns
-	 * @param entityClass: Object Class
+	 *
+	 * @param entityClass:
+	 *            Object Class
 	 * @param columnToBeExclude
 	 */
 	public void excludeColumns(Class entityClass, String... columnToBeExclude) {
-		listOfColumnsTitle = new ArrayList<TableColumn>();
+		listOfColumns = new ArrayList<TableColumnHelper>();
 		Field[] attributes = entityClass.getDeclaredFields();
 		int i;
 		StringBuilder sb = new StringBuilder();
 		List<String> listeExclude = Arrays.asList(columnToBeExclude);
 		i = 0;
 		for (Field att : attributes) {
-			tableColumn = new TableColumn(att.getName());
+			tableColumn = new TableColumnHelper(att.getName());
 			if (att.getType().isAssignableFrom(String.class)
 					|| att.getType().isAssignableFrom(SimpleStringProperty.class)) {
 				// associate data to column using setCellValueFactory
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(attributes[i++].getName()));
 				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn());
 				if (!listeExclude.contains(att.getName())) {
-					listOfColumnsTitle.add(tableColumn);
+					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(int.class)
 					|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(attributes[i++].getName()));
 				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
-					listOfColumnsTitle.add(tableColumn);
+					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(long.class)
 					|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Long>(attributes[i++].getName()));
 				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new LongStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
-					listOfColumnsTitle.add(tableColumn);
+					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(double.class)
 					|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Double>(attributes[i++].getName()));
 				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new DoubleStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
-					listOfColumnsTitle.add(tableColumn);
+					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(float.class)
 					|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(attributes[i++].getName()));
 				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new FloatStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
-					listOfColumnsTitle.add(tableColumn);
+					listOfColumns.add(tableColumn);
 				}
 			} else if (att.getType().isAssignableFrom(Date.class)
 					|| att.getType().isAssignableFrom(ObjectProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(attributes[i++].getName()));
 				tableColumn.setCellFactory(TextFieldTableCell.forTableColumn(new DateStringConverter()));
 				if (!listeExclude.contains(att.getName())) {
-					listOfColumnsTitle.add(tableColumn);
+					listOfColumns.add(tableColumn);
 				}
 			}
 			sb.append(tableColumn.getText() + " , ");
@@ -339,21 +351,97 @@ public class TableViewManager<T> {
 		sb.toString().trim();
 		logger.log(Level.INFO, "Columns initialised [" + sb.toString() + "]");
 		this.tableView.getColumns().clear();
-		this.tableView.getColumns().setAll(listOfColumnsTitle);
+		this.tableView.getColumns().setAll(listOfColumns);
 	}
 	/*
 	 *
 	 */
 
-
 	/**
-	 * the function call the given update/edit method located in the given busynesslogic class after an edit action is done
+	 * the function call the given update/edit method located in the given
+	 * busynesslogic class after an edit action is done
+	 *
 	 * @param busynessLogic
 	 * @param clazz
 	 * @author ca.leumaleu
 	 */
 	public void performEditActionOnCell(Class busynessLogic, Class clazz, String method) {
 
+	}
+
+	@Override
+	public void addContextMenuToColumn(String column, Class<T> clazz) {
+	}
+
+	/**
+	 *
+	 * @author ca.leumaleu
+	 */
+	@Override
+	public void applyCellFactoryTo(TableColumnHelper tabColumn, CellFactoryTyp cellFactoryTyp, Class converterClazz) {
+		if (cellFactoryTyp == CellFactoryTyp.CHECKBOXTABLECELL) {
+			tabColumn.setCellFactory(column -> {
+				return new CheckBoxTableCell();
+			});
+		} else if (cellFactoryTyp == CellFactoryTyp.COMBOBOXTABLECELL) {
+			tabColumn.setCellFactory(column -> {
+				if (converterClazz.isAssignableFrom(StringConverter.class)) {
+					return new ComboBoxTableCell();
+				} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
+					return new ComboBoxTableCell(new DateStringConverter());
+				} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
+					return new ComboBoxTableCell(new LongStringConverter());
+				} else if (converterClazz.isAssignableFrom(IntegerStringConverter.class)) {
+					return new ComboBoxTableCell(new IntegerStringConverter());
+				} else if (converterClazz.isAssignableFrom(DoubleStringConverter.class)) {
+					return new ComboBoxTableCell(new DoubleStringConverter());
+				} else if (converterClazz.isAssignableFrom(FloatStringConverter.class)) {
+					return new ComboBoxTableCell(new FloatStringConverter());
+				}
+				return null;
+			});
+		} else if (cellFactoryTyp == CellFactoryTyp.TEXTFIELDTABLECELL) {
+			tabColumn.setCellFactory(column -> {
+				if (converterClazz.isAssignableFrom(StringConverter.class)) {
+					return new TextFieldTableCell();
+				} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
+					return new TextFieldTableCell(new DateStringConverter());
+				} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
+					return new TextFieldTableCell(new LongStringConverter());
+				} else if (converterClazz.isAssignableFrom(IntegerStringConverter.class)) {
+					return new TextFieldTableCell(new IntegerStringConverter());
+				} else if (converterClazz.isAssignableFrom(DoubleStringConverter.class)) {
+					return new TextFieldTableCell(new DoubleStringConverter());
+				} else if (converterClazz.isAssignableFrom(FloatStringConverter.class)) {
+					return new TextFieldTableCell(new FloatStringConverter());
+				}
+				return null;
+			});
+		}
+	}
+
+	/**
+	 * apply the desired factory on the given columns
+	 * @param cellFactoryTyp: enum mentioning which kind of component will be set as Factory
+	 * there are just tree components category in javafx which can be assign as factory to TableCell.
+	 * CheckboxTableCell, TextFieldTableCell and ComboboxTableCell
+	 * @param columns: list of columns to apply the factory on
+	 * @author ca.leumaleu
+	 */
+	@Override
+	public void applyCellFactoryTo(CellFactoryTyp cellFactoryTyp, String... columns) {
+		if (columns.length <= 0 || (columns.length == 1 && columns[0].equals("ALL"))) {
+			for (TableColumnHelper tableColumnHelper : listOfColumns) {
+				applyCellFactoryTo(tableColumnHelper, cellFactoryTyp, tableColumnHelper.getConverterClazz());
+			}
+		} else if (columns.length >= 1) {
+			List<String> colList = Arrays.asList(columns);
+			for (TableColumnHelper tableColumnHelper : listOfColumns) {
+				if (colList.contains(tableColumnHelper.getText())) {
+					applyCellFactoryTo(tableColumnHelper, cellFactoryTyp, tableColumnHelper.getConverterClazz());
+				}
+			}
+		}
 	}
 
 }
