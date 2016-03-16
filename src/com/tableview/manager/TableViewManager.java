@@ -63,8 +63,8 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	}
 
 	/**
-	 * convert List<T> data into an observableList in order to set Items
-	 * tableView
+	 * convert a list of data into an observableList in order to set the
+	 * tableViews Items
 	 *
 	 * @param data
 	 */
@@ -74,14 +74,15 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	}
 
 	/**
-	 * This function initialize table columns of a POJO.
+	 * This function initialize table columns of a POJO. Here the columns name
+	 * are represented by the name of the attributes of the POJO
 	 *
-	 * @param columnsTitle
-	 * @param entity
+	 * @param entityClazz:
+	 *            the class name of the PoJo
 	 */
-	public void initColumnSetValueFactory(Class entity) {
+	public void initColumnSetValueFactory(Class entityClazz) {
 		listOfColumns = new ArrayList<TableColumnHelper>();
-		Field[] attributes = entity.getDeclaredFields();
+		Field[] attributes = entityClazz.getDeclaredFields();
 		int i = 0;
 		StringBuilder sb = new StringBuilder();
 		for (Field att : attributes) {
@@ -127,17 +128,22 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	}
 
 	/**
-	 * Assign Event handler to the given Component. The function to be execute
-	 * by event-handling is method
+	 * @deprecated: the method is not completely implemented Assign an Event
+	 *              handler to the given Component depending on they type.
+	 *              button --> setOnAction Event Combo-, Radio-, CheckBox -->
+	 *              setOnChange Event TextField --> onKeyReleased Event
 	 *
-	 * @param btn
-	 * @param serviceClass
-	 * @param method
+	 * @param component:
+	 *            component on which the event is applied
+	 * @param serviceClass:
+	 *            Class where the method is implement in
+	 * @param method:
+	 *            The function to be execute by event-handling
 	 * @author ca.leumaleu
 	 */
-	private void assignEvent(Object object, Class serviceClass, String method) {
-		if (object instanceof Button) {
-			((Button) object).setOnAction((event) -> {
+	private void assignEvent(Object component, Class serviceClass, String method) {
+		if (component instanceof Button) {
+			((Button) component).setOnAction((event) -> {
 				try {
 					Object t = serviceClass.newInstance();
 					Method[] allMethods = serviceClass.getDeclaredMethods();
@@ -155,8 +161,8 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 				}
 
 			});
-		} else if (object instanceof ComboBox) {
-			((ComboBox) object).setOnAction((event) -> {
+		} else if (component instanceof ComboBox) {
+			((ComboBox) component).setOnAction((event) -> {
 				try {
 					Object t = serviceClass.newInstance();
 					Method[] allMethods = serviceClass.getDeclaredMethods();
@@ -174,8 +180,8 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 				}
 
 			});
-		} else if (object instanceof Label) {
-			((Label) object).setOnMouseReleased((event) -> {
+		} else if (component instanceof Label) {
+			((Label) component).setOnMouseReleased((event) -> {
 				try {
 					Object t = serviceClass.newInstance();
 					Method[] allMethods = serviceClass.getDeclaredMethods();
@@ -198,17 +204,21 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	}
 
 	/**
-	 * to assign graphics elements to the cell and apply on it the given event
-	 * method
+	 * to assign a graphic component to a cell
 	 *
+	 * @deprecated: this method is not completely implemented
 	 * @param column
-	 * @param componentClass
-	 * @param serviceClass
-	 * @param method
+	 * @param componentClass:
+	 *            entity Class
+	 * @param serviceClass:
+	 *            to get via reflexion the service Class where the method is
+	 *            implemented in
+	 * @param method:
+	 *            to be call by the Event handler
 	 * @param itemListForListComponent
 	 *            for example if the component is a Combobox
 	 */
-	private void assignGraphic(TableColumn column, Class componentClass, Class serviceClass, String method,
+	private void assignGraphic(TableColumnHelper column, Class componentClass, Class serviceClass, String method,
 			List<String>... itemListForListComponent) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
 			@Override
@@ -218,9 +228,6 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 					public void updateItem(Object item, boolean empty) {
 						if (item != null) {
 							if (componentClass.isAssignableFrom(Button.class)) {
-								// Button has to be declared in the update
-								// function in order to be assign to each
-								// desired cell
 								Button btn = new Button(item.toString());
 								btn.setPrefWidth(column.getPrefWidth());
 								btn.setPrefHeight(40.0);
@@ -260,23 +267,24 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	}
 
 	/**
-	 * render the given column by assigning to its cells a component which Class
-	 * correspond to the given class for Combobox Object you first have to
+	 * render the given column by assigning a component which Class correspond
+	 * to the given class.
 	 *
+	 * @deprecated: method not completely implemented
 	 * @param columnName
 	 * @param componentClass:
 	 *            the class of the components category you want to display in
-	 *            the table i.e. Button.class
+	 *            the table
 	 * @param serviceClass:
-	 *            use by reflexion to execute the function having the same name
-	 *            as method argument
+	 *            Class to get via reflexion the service class where the method
+	 *            is implemented in
 	 * @param method
 	 * @param itemListForListComponent:
 	 *            i.e. combobox does not have a other Eventhandler as Button
 	 */
 	public void assignCellFactoryToSpecificColumn(String columnName, Class componentClass, Class serviceClass,
 			String method, List<String>... itemListForListComponent) {
-		for (TableColumn column : listOfColumns) {
+		for (TableColumnHelper column : listOfColumns) {
 			if (column.getText().equals(columnName)) {
 				assignGraphic(column, componentClass, serviceClass, method, itemListForListComponent);
 			}
@@ -359,13 +367,13 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 
 	/**
 	 * the function call the given update/edit method located in the given
-	 * busynesslogic class after an edit action is done
+	 * business logic class after an edit action is committed
 	 *
-	 * @param busynessLogic
+	 * @param businessLogic
 	 * @param clazz
 	 * @author ca.leumaleu
 	 */
-	public void performEditActionOnCell(Class busynessLogic, Class clazz, String method) {
+	public void performEditActionOnCell(Class businessLogic, Class clazz, String method) {
 
 	}
 
@@ -374,7 +382,10 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	}
 
 	/**
-	 *
+	 * apply the desired factory on the given column
+	 * @param tabColumn: the column to apply the factory on
+	 * @param converterClazz: to find out the converter to be applied on the column
+	 * @param cellFactoryTyp: the factoryTyp to be applied
 	 * @author ca.leumaleu
 	 */
 	@Override
@@ -422,10 +433,10 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 
 	/**
 	 * apply the desired factory on the given columns
-	 * @param cellFactoryTyp: enum mentioning which kind of component will be set as Factory
-	 * there are just tree components category in javafx which can be assign as factory to TableCell.
-	 * CheckboxTableCell, TextFieldTableCell and ComboboxTableCell
-	 * @param columns: list of columns to apply the factory on
+	 *
+	 * @param cellFactoryTyp: the factoryTyp to be applied.
+	 * @param columns:
+	 *            list of columns to apply the factory on
 	 * @author ca.leumaleu
 	 */
 	@Override
@@ -442,6 +453,12 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 				}
 			}
 		}
+	}
+
+	@Override
+	public void performOnEditCommit(Class serviceClazz, String method) {
+		// TODO Auto-generated method stub
+
 	}
 
 }

@@ -65,4 +65,7 @@ public interface ITableViewManager<T> {
 	 * it will apply the Factory on all the column
 	 */
 	public void applyCellFactoryTo(CellFactoryTyp cellFactoryTyp , String ...columns);
+
+
+	public void performOnEditCommit(Class serviceClazz, String method);
 }
