@@ -97,6 +97,8 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 					|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
 				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(attributes[i++].getName()));
 				tableColumn.setConverterClazz(IntegerStringConverter.class);
+
+//				tableColumn.getProperties()..put(attributes[i++].getName(), attributes[i++].getName()+"Property");
 				listOfColumns.add(tableColumn);
 			} else if (att.getType().isAssignableFrom(Long.class)
 					|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
@@ -377,38 +379,45 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 
 	/**
 	 * apply the desired factory on the given column
-	 * @param tabColumn: the column to apply the factory on
-	 * @param converterClazz: to find out the converter to be applied on the column
-	 * @param cellFactoryTyp: the factoryTyp to be applied
+	 *
+	 * @param tabColumn:
+	 *            the column to apply the factory on
+	 * @param converterClazz:
+	 *            to find out the converter to be applied on the column
+	 * @param listItemsForCombobox: list of combobox item. has to be setted to null if the the cellFactory type is not a combobox
+	 * @param cellFactoryTyp:
+	 *            the factoryTyp to be applied
 	 * @author ca.leumaleu
 	 */
 	@Override
-	public void applyCellFactoryTo(TableColumnHelper tabColumn, CellFactoryTyp cellFactoryTyp, Class converterClazz) {
+	public void applyCellFactoryTo(TableColumnHelper tabColumn, CellFactoryTyp cellFactoryTyp, List<T> listItemsForCombobox, Class converterClazz) {
+		assert(listItemsForCombobox == null && cellFactoryTyp == CellFactoryTyp.COMBOBOXTABLECELL);
 		if (cellFactoryTyp == CellFactoryTyp.CHECKBOXTABLECELL) {
 			tabColumn.setCellFactory(column -> {
 				return new CheckBoxTableCell();
 			});
 		} else if (cellFactoryTyp == CellFactoryTyp.COMBOBOXTABLECELL) {
+			ObservableList<T> ol = FXCollections.observableArrayList(listItemsForCombobox);
 			tabColumn.setCellFactory(column -> {
 				if (converterClazz.isAssignableFrom(StringConverter.class)) {
-					return new ComboBoxTableCell();
+					return new ComboBoxTableCell(ol);
 				} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
-					return new ComboBoxTableCell(new DateStringConverter());
+					return new ComboBoxTableCell(new DateStringConverter(),ol);
 				} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
-					return new ComboBoxTableCell(new LongStringConverter());
+					return new ComboBoxTableCell(new LongStringConverter(),ol);
 				} else if (converterClazz.isAssignableFrom(IntegerStringConverter.class)) {
-					return new ComboBoxTableCell(new IntegerStringConverter());
+					return new ComboBoxTableCell(new IntegerStringConverter(),ol);
 				} else if (converterClazz.isAssignableFrom(DoubleStringConverter.class)) {
-					return new ComboBoxTableCell(new DoubleStringConverter());
+					return new ComboBoxTableCell(new DoubleStringConverter(),ol);
 				} else if (converterClazz.isAssignableFrom(FloatStringConverter.class)) {
-					return new ComboBoxTableCell(new FloatStringConverter());
+					return new ComboBoxTableCell(new FloatStringConverter(),ol);
 				}
 				return null;
 			});
 		} else if (cellFactoryTyp == CellFactoryTyp.TEXTFIELDTABLECELL) {
 			tabColumn.setCellFactory(column -> {
 				if (converterClazz.isAssignableFrom(StringConverter.class)) {
-					return new TextFieldTableCell();
+					return new TextFieldTableCell(new StingConverterHelper());
 				} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
 					return new TextFieldTableCell(new DateStringConverter());
 				} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
@@ -428,31 +437,79 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	/**
 	 * apply the desired factory on the given columns
 	 *
-	 * @param cellFactoryTyp: the factoryTyp to be applied.
+	 * @param cellFactoryTyp:
+	 *            the factoryTyp to be applied.
+	 * @param listItemsForCombobox: list of combobox item. has to be setted to null if the the cellFactory type is not a combobox
 	 * @param columns:
 	 *            list of columns to apply the factory on
 	 * @author ca.leumaleu
 	 */
 	@Override
-	public void applyCellFactoryTo(CellFactoryTyp cellFactoryTyp, String... columns) {
+	public void applyCellFactoryTo(CellFactoryTyp cellFactoryTyp, List<T> listItemsForCombobox,  String... columns) {
 		if (columns.length <= 0 || (columns.length == 1 && columns[0].equals("ALL"))) {
 			for (TableColumnHelper tableColumnHelper : listOfColumns) {
-				applyCellFactoryTo(tableColumnHelper, cellFactoryTyp, tableColumnHelper.getConverterClazz());
+				applyCellFactoryTo(tableColumnHelper, cellFactoryTyp, listItemsForCombobox, tableColumnHelper.getConverterClazz());
 			}
 		} else if (columns.length >= 1) {
 			List<String> colList = Arrays.asList(columns);
 			for (TableColumnHelper tableColumnHelper : listOfColumns) {
 				if (colList.contains(tableColumnHelper.getText())) {
-					applyCellFactoryTo(tableColumnHelper, cellFactoryTyp, tableColumnHelper.getConverterClazz());
+					applyCellFactoryTo(tableColumnHelper, cellFactoryTyp, listItemsForCombobox, tableColumnHelper.getConverterClazz());
 				}
 			}
 		}
 	}
 
 	@Override
-	public void performOnEditCommit(Class serviceClazz, String method) {
-		// TODO Auto-generated method stub
+	public void performOnEditCommit(Class entity, Class serviceClazz, String method) {
+		for (TableColumnHelper tableColumnHelper : listOfColumns) {
+			tableColumnHelper.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
+				@Override
+				public void handle(CellEditEvent event) {
+					T en = ((T) event.getTableView().getItems().get(event.getTablePosition().getRow()));
+					Object o = null;
+					String newValue = event.getNewValue().toString();
+					String fieldName =  ((PropertyValueFactory)event.getTableColumn().getCellValueFactory()).getProperty();
+					try {
+						Object t = entity.newInstance();
+						en.getClass().getMethod("set"+Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1), String.class).invoke(en,newValue);
+					} catch (SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException e) {
 
+						e.printStackTrace();
+					}
+					try {
+						Object t = serviceClazz.newInstance();
+						Method[] allMethods = serviceClazz.getDeclaredMethods();
+						for (Method m : allMethods) {
+							String mname = m.getName();
+							if (!mname.startsWith(method) || (m.getGenericReturnType() != void.class)) {
+								continue;
+							}
+							m.setAccessible(true);
+							o = m.invoke(t, en);
+						}
+					} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+							| InvocationTargetException x) {
+						x.printStackTrace();
+					}
+				}
+			});
+		}
 	}
 
+	private class StingConverterHelper extends StringConverter{
+
+		@Override
+		public String toString(Object object) {
+			// TODO Auto-generated method stub
+			return object.toString();
+		}
+
+		@Override
+		public Object fromString(String string) {
+			// TODO Auto-generated method stub
+			return string;
+		}
+
+	}
 }

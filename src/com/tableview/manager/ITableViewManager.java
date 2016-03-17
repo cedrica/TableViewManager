@@ -54,18 +54,19 @@ public interface ITableViewManager<T> {
 	 * you have to apply a IntegerStringConverter
 	 * @param column: the the column to apply the cellFactory on
 	 */
-	public void applyCellFactoryTo(TableColumnHelper column, CellFactoryTyp cellFactoryTyp, Class converterClazz);
+	public void applyCellFactoryTo(TableColumnHelper column, CellFactoryTyp cellFactoryTyp, List<T> listItemsForCombobox, Class converterClazz);
 
 	/**
 	 * Apply CellFactory on given columns
 	 * @param cellFactoryTyp: Components category to be display by double click on table cell
 	 * @param converterClazz: converter class to be apply on the column. for example if the column will content Integer then
 	 * you have to apply a IntegerStringConverter
+	 * @param listItemsForCombobox: list of combobox item. has to be setted to null if the the cellFactory type is not a combobox
 	 * @param columns: the list of the column to apply the cellFactory on. if the list is empty or or the given columns name is ALL the
 	 * it will apply the Factory on all the column
 	 */
-	public void applyCellFactoryTo(CellFactoryTyp cellFactoryTyp , String ...columns);
+	public void applyCellFactoryTo(CellFactoryTyp cellFactoryTyp , List<T> listItemsForCombobox, String ...columns);
 
 
-	public void performOnEditCommit(Class serviceClazz, String method);
+	public void performOnEditCommit(Class entity, Class serviceClazz, String method);
 }
