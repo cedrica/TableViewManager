@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -137,6 +138,59 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 		this.tableView.getColumns().setAll(listOfColumns);
 	}
 
+	/**
+	 * This function initialize table columns of a POJO. The columns name are map in the hash variable .
+	 * the key to get a column from the hash is the corresponding fields name in the POJO.
+	 *
+	 * @param entityClazz: the class name of the PoJo
+	 * @param columnname: hash Variable where columns name are mapped
+	 */
+	public void initColumnSetValueFactory(Class entityClazz, HashMap<String, String> columnname){
+		listOfColumns = new ArrayList<TableColumnHelper>();
+		Field[] attributes = entityClazz.getDeclaredFields();
+		int i = 0;
+		StringBuilder sb = new StringBuilder();
+		for (Field att : attributes) {
+			tableColumn = new TableColumnHelper(columnname.get(att.getName()));
+			if (att.getType().isAssignableFrom(String.class)
+					|| att.getType().isAssignableFrom(SimpleStringProperty.class)) {
+				// associate data to column using setCellValueFactory
+				tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(attributes[i++].getName()));
+				tableColumn.setConverterClazz(StringConverter.class);
+				listOfColumns.add(tableColumn);
+			} else if (att.getType().isAssignableFrom(Integer.class)
+					|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
+				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(attributes[i++].getName()));
+				tableColumn.setConverterClazz(IntegerStringConverter.class);
+				listOfColumns.add(tableColumn);
+			} else if (att.getType().isAssignableFrom(Long.class)
+					|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
+				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Long>(attributes[i++].getName()));
+				tableColumn.setConverterClazz(LongStringConverter.class);
+				listOfColumns.add(tableColumn);
+			} else if (att.getType().isAssignableFrom(Double.class)
+					|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
+				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Double>(attributes[i++].getName()));
+				tableColumn.setConverterClazz(DoubleStringConverter.class);
+				listOfColumns.add(tableColumn);
+			} else if (att.getType().isAssignableFrom(Date.class)
+					|| att.getType().isAssignableFrom(ObjectProperty.class)) {
+				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(attributes[i++].getName()));
+				tableColumn.setConverterClazz(DateStringConverter.class);
+				listOfColumns.add(tableColumn);
+			} else if (att.getType().isAssignableFrom(Float.class)
+					|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
+				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(attributes[i++].getName()));
+				tableColumn.setConverterClazz(FloatStringConverter.class);
+				listOfColumns.add(tableColumn);
+			}
+			sb.append(tableColumn.getText() + " , ");
+		}
+		sb.toString().trim();
+		logger.log(Level.INFO, "Columns initialised [" + sb.toString() + "]");
+		this.tableView.getColumns().clear();
+		this.tableView.getColumns().setAll(listOfColumns);
+	}
 	/**
 	 * @deprecated: the method is not completely implemented Assign an Event
 	 *              handler to the given Component depending on they type.
