@@ -22,6 +22,15 @@ public interface ITableViewManager<T> {
 	public void initColumnSetValueFactory(Class<T> entity);
 
 	/**
+	 * This function initialize table columns of a POJO. Here the columns name
+	 * are represented given name in the columnname array
+	 *
+	 * @param entityClazz:
+	 *            the class name of the PoJo
+	 */
+	public void initColumnSetValueFactory(Class entityClazz, String[] columnname);
+
+	/**
 	 * render the given column by assigning to its cells a Graphic which the Class
 	 * correspond to the given class.
 	 *
