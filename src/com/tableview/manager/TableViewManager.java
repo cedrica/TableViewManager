@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -138,20 +139,19 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	}
 
 	/**
-	 * This function initialize table columns of a POJO. Here the columns name
-	 * are represented given name in the columnname array
+	 * This function initialize table columns of a POJO. The columns name are map in the hash variable .
+	 * the key to get a column from the hash is the corresponding fields name in the POJO.
 	 *
-	 * @param entityClazz:
-	 *            the class name of the PoJo
+	 * @param entityClazz: the class name of the PoJo
+	 * @param columnname: hash Variable where columns name are mapped
 	 */
-	public void initColumnSetValueFactory(Class entityClazz, String[] columnname){
+	public void initColumnSetValueFactory(Class entityClazz, HashMap<String, String> columnname){
 		listOfColumns = new ArrayList<TableColumnHelper>();
 		Field[] attributes = entityClazz.getDeclaredFields();
 		int i = 0;
-		int j = 0;
 		StringBuilder sb = new StringBuilder();
 		for (Field att : attributes) {
-			tableColumn = new TableColumnHelper(columnname[j++]);
+			tableColumn = new TableColumnHelper(columnname.get(att.getName()));
 			if (att.getType().isAssignableFrom(String.class)
 					|| att.getType().isAssignableFrom(SimpleStringProperty.class)) {
 				// associate data to column using setCellValueFactory

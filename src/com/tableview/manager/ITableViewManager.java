@@ -3,6 +3,7 @@
  */
 package com.tableview.manager;
 
+import java.util.HashMap;
 import java.util.List;
 
 import javafx.scene.Node;
@@ -22,13 +23,13 @@ public interface ITableViewManager<T> {
 	public void initColumnSetValueFactory(Class<T> entity);
 
 	/**
-	 * This function initialize table columns of a POJO. Here the columns name
-	 * are represented given name in the columnname array
+	 * This function initialize table columns of a POJO. The columns name are map in the hash variable .
+	 * the key to get a column from the hash is the corresponding fields name in the POJO.
 	 *
-	 * @param entityClazz:
-	 *            the class name of the PoJo
+	 * @param entityClazz: the class name of the PoJo
+	 * @param columnname: hash Variable where columns name are mapped
 	 */
-	public void initColumnSetValueFactory(Class entityClazz, String[] columnname);
+	public void initColumnSetValueFactory(Class entityClazz, HashMap<String, String> columnname);
 
 	/**
 	 * render the given column by assigning to its cells a Graphic which the Class
