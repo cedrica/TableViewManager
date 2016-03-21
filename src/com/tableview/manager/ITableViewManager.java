@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import javafx.scene.Node;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableColumn;
 
 @SuppressWarnings ("all")
@@ -49,8 +50,6 @@ public interface ITableViewManager<T> {
 	 * @param columnToBeExclude
 	 */
 	void excludeColumns(Class<T> entityClass, String... columnToBeExclude);
-
-	public void addContextMenuToColumn(String column, Class<T> clazz);
 
 	/**
 	 * Apply CellFactory on the given column
@@ -104,4 +103,26 @@ public interface ITableViewManager<T> {
 	 * @param css
 	 */
 	public void applyButtonFactory(TableColumn tableColumn, Class serviceClazz, String method, String css);
+
+	/**
+	 * render the given column by assigning a component which Class correspond
+	 * to the given class.
+	 * @param node
+	 * @param dir
+	 * @param columnsName
+	 */
+	public void assignGraphicToColumn(Node node, Direction dir, String... columnsName);
+
+	/**
+	 * to enable or disable cell selection
+	 * @param b
+	 */
+	public void setCellSelection(boolean b);
+
+	/**
+	 * set the selections mode
+	 * @param selectionMode
+	 */
+	public void setCellSelectionMode(SelectionMode selectionMode);
+
 }

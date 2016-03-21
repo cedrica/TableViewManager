@@ -14,6 +14,7 @@
  */
 package com.tableview.manager;
 
+import java.awt.Point;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -24,7 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.sun.javafx.scene.layout.region.Margins.Converter;
+
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleFloatProperty;
@@ -36,20 +37,20 @@ import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.Tab;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import javafx.util.converter.DateStringConverter;
@@ -270,7 +271,6 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	/**
 	 * to assign a graphic component to a cell
 	 *
-	 * @deprecated: this method is not completely implemented
 	 * @param column
 	 * @param componentClass:
 	 *            entity Class
@@ -282,7 +282,7 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	 * @param itemListForListComponent
 	 *            for example if the component is a Combobox
 	 */
-	private void applyGraphic(TableColumnHelper column, Node node, String name) {
+	private void applyGraphic(TableColumnHelper column, Node node) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
 			@Override
 			public TableCell call(TableColumn param) {
@@ -291,7 +291,6 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 					public void updateItem(Object item, boolean empty) {
 						if (item != null) {
 							setGraphic(node);
-							setText(name);
 						}
 					}
 				};
@@ -300,6 +299,39 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 		});
 	}
 
+	/**
+	 * to assign a graphic component to a cell. value displayed before the graphic component is the existing value in the cell.
+	 *
+	 * @param column
+	 * @param node
+	 * @param direction
+	 */
+	private void applyGraphic(TableColumnHelper column, Node node, Direction direction) {
+		column.setCellFactory(new Callback<TableColumn, TableCell>() {
+			@Override
+			public TableCell call(TableColumn param) {
+				TableCell cell = new TableCell() {
+					@Override
+					public void updateItem(Object item, boolean empty) {
+						if (item != null) {
+							if(direction == Direction.HORIZONTAL){
+								HBox hb = new HBox();
+								hb.getChildren().add(node);
+								hb.getChildren().add(new Label(item.toString()));
+								setGraphic(hb);
+							}else if(direction == Direction.VERTICAL){
+								VBox vb = new VBox();
+								vb.getChildren().add(node);
+								vb.getChildren().add(new Label(item.toString()));
+								setGraphic(vb);
+							}
+						}
+					}
+				};
+				return cell;
+			}
+		});
+	}
 	/**
 	 * render the given column by assigning a component which Class correspond
 	 * to the given class.
@@ -323,7 +355,37 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 		int i = 0;
 		for (TableColumnHelper column : listOfColumns) {
 			if (columnsnameList.contains(column.getText())) {
-				applyGraphic(column, node, "ss");
+				applyGraphic(column, node);
+			}
+		}
+		tableView.getColumns().clear();
+		tableView.getColumns().addAll(listOfColumns);
+	}
+
+	/**
+	 * render the given column by assigning a component which Class correspond
+	 * to the given class.
+	 *
+	 * @deprecated: method not completely implemented
+	 * @param columnsName:
+	 *            array containing the columns name. If "ALL" is given then
+	 *            Graphic will be assign on all column.
+	 * @param componentClass:
+	 *            the class of the components category you want to display in
+	 *            the table
+	 * @param serviceClass:
+	 *            use to access via reflexion the method insides which will be
+	 *            execute when the Event will be fired.
+	 * @param method
+	 * @param itemListForListComponent:
+	 *            i.e. combobox does not have a other Eventhandler as Button
+	 */
+	public void assignGraphicToColumn(Node node, Direction dir, String... columnsName) {
+		List<String> columnsnameList = Arrays.asList(columnsName);
+		int i = 0;
+		for (TableColumnHelper column : listOfColumns) {
+			if (columnsnameList.contains(column.getText())) {
+				applyGraphic(column, node, dir);
 			}
 		}
 		tableView.getColumns().clear();
@@ -355,14 +417,6 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 		this.tableView.getColumns().removeAll(listOfColumns);
 		this.tableView.getColumns().setAll(newListOfColumns);
 	}
-	/*
-	 *
-	 */
-
-	@Override
-	public void addContextMenuToColumn(String column, Class<T> clazz) {
-	}
-
 
 	private void applyCellFactoryTo(TableColumnHelper tabColumn, CellFactoryTyp cellFactoryTyp,
 			List<T> listItemsForCombobox, Class converterClazz) {
@@ -564,11 +618,7 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	 * set a Button as graphic.
 	 * @param serviceClazz
 	 * @param method: performed when the button is clicked
-	 * @param css: String containing the css to be apply on the column. For example
-	 * 		.btn{
-	 * 			-fx-width:300px;
-	 * 			...
-	 * 		}
+	 * @param css: String containing the css to be apply on the column. For example String css = "-fx-width:300px;"
 	 * @param columns
 	 */
 	@Override
@@ -644,4 +694,20 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 			}
 		});
 	}
+
+	/**
+	 * set the selections mode
+	 * @param selectionMode
+	 */
+	@Override
+	public void setCellSelectionMode(SelectionMode selectionMode) {
+		tableView.getSelectionModel().setCellSelectionEnabled(true);
+		tableView.getSelectionModel().setSelectionMode(selectionMode);
+	}
+
+	@Override
+	public void setCellSelection(boolean b) {
+		tableView.getSelectionModel().setCellSelectionEnabled(b);
+	}
+
 }
