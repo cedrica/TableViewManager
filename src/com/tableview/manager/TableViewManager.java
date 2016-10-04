@@ -1,30 +1,39 @@
 /**
- *this class was implemented to simplify the initialization and the setting of TableView.
- *The Class is of course an open source to be improved as desired. that is the reason why it implements a Interface.
- *please enter other functions in the interface that you mint they could be useful for the customizing or setting of
- *TableView.
- *In Order to initialize and render your table using TableViewManager, two main steps are supposed to be done first.
- *1. You first have to initialize a TableViewManager Object and assign to its construct the defined table.
- *2. then you have to call the initColumnSetValueFactory() function to initialize the columns of the table
- *Just after this two steps you can start using oder functions.
- *Some function are not stable that is the reason why they are annotated as deprecate. Some other are just meant to be use for
- *special case that is why please first read the description before using the function.
+ * this class was implemented to simplify the initialization and the setting of TableView.
+ * The Class is of course an open source to be improved as desired. that is the reason why it implements a Interface.
+ * please enter other functions in the interface that you mint they could be useful for the customizing or setting of
+ * TableView.
+ * In Order to initialize and render your table using TableViewManager, two main steps are supposed to be done first.
+ * 1. You first have to initialize a TableViewManager Object and assign to its construct the defined table.
+ * 2. then you have to call the initColumnSetValueFactory() function to initialize the columns of the table
+ * Just after this two steps you can start using oder functions.
+ * Some function are not stable that is the reason why they are annotated as deprecate. Some other are just meant to be
+ * use for
+ * special case that is why please first read the description before using the function.
  *
- *@author ca.leumaleu
+ * @author ca.leumaleu
  */
 package com.tableview.manager;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.sun.javafx.scene.layout.region.Margins.Converter;
+
+import com.tableview.manager.annotation.Column;
+import com.tableview.manager.annotation.Link;
+import com.tableview.manager.annotation.SpecialCase;
+import com.tableview.manager.annotation.Transient;
+import com.tableview.manager.helper.TableColumnHelper;
+
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleFloatProperty;
@@ -33,23 +42,27 @@ import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import javafx.util.converter.DateStringConverter;
@@ -59,18 +72,26 @@ import javafx.util.converter.IntegerStringConverter;
 import javafx.util.converter.LongStringConverter;
 
 @SuppressWarnings("all")
-public class TableViewManager<T> implements ITableViewManager<T> {
-	private TableView tableView;
-	private TableColumnHelper tableColumn;
-	private List<TableColumnHelper> listOfColumns;
-	private boolean isUpdatable;
-	private static Logger logger = null;
-	private String[] listExcludedColumns = null;
+public class TableViewManager<T> {
+
+	private TableView				tableView;
+	private TableColumnHelper		tableColumn;
+	private List<TableColumnHelper>	listOfColumns;
+	private List<TableColumnHelper>	excludedColumns;
+	private boolean					isUpdatable;
+	private static Logger			logger	= null;
+	HashMap<String, Integer>		columnsOrderMap;
 
 	public TableViewManager(TableView tableView) {
 		this.tableView = tableView;
 		listOfColumns = new ArrayList<TableColumnHelper>();
+		excludedColumns = new ArrayList<TableColumnHelper>();
+		columnsOrderMap = new HashMap<String, Integer>();
 		logger = Logger.getLogger(this.getClass().getSimpleName());
+	}
+
+	public TableViewManager() {
+	
 	}
 
 	/**
@@ -84,214 +105,441 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 		this.tableView.setItems(ol);
 	}
 
+	public void clear() {
+		tableView.getItems().clear();
+		tableView.setItems(null);
+	}
+
+	public void setItems(ObservableList<T> items) {
+		this.tableView.setItems(items);
+		if(items != null && !items.isEmpty())
+			initColumnAndSetValueFactory(items.get(0).getClass());
+	}
+
+
+	public List<TableColumnHelper> getListOfColumns() {
+		return listOfColumns;
+	}
+
+
+	public void setListOfColumns(List<TableColumnHelper> listOfColumns) {
+		this.listOfColumns = listOfColumns;
+	}
+
 	/**
 	 * This function initialize table columns of a POJO. Here the columns name
 	 * are represented by the name of the attributes of the POJO
 	 *
 	 * @param entityClazz:
-	 *            the class name of the PoJo
+	 *        the class name of the PoJo
 	 */
-	public void initColumnSetValueFactory(Class entityClazz) {
+	public void initColumnAndSetValueFactory(Class entityClazz) {
 		listOfColumns = new ArrayList<TableColumnHelper>();
 		Field[] attributes = entityClazz.getDeclaredFields();
-		int i = 0;
+		List<Field> annotatedFields = new ArrayList<Field>();
+		List<Field> childAttributs = new ArrayList<Field>();
+		HashMap<String, List<Field>> mapParentNameAttribut = new HashMap<String, List<Field>>();
 		StringBuilder sb = new StringBuilder();
 		for (Field att : attributes) {
-			tableColumn = new TableColumnHelper(att.getName());
-			if (att.getType().isAssignableFrom(String.class)
-					|| att.getType().isAssignableFrom(SimpleStringProperty.class)) {
-				// associate data to column using setCellValueFactory
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(StringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Integer.class)
-					|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(IntegerStringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Long.class)
-					|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Long>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(LongStringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Double.class)
-					|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Double>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(DoubleStringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Date.class)
-					|| att.getType().isAssignableFrom(ObjectProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(DateStringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Float.class)
-					|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(FloatStringConverter.class);
-				listOfColumns.add(tableColumn);
+			String colName = att.getName();
+			Column colAnnotation = att.getAnnotation(Column.class);
+			Transient transientAnnotation = att.getAnnotation(Transient.class);
+			if (transientAnnotation != null) {
+				continue;
 			}
-			sb.append(tableColumn.getText() + " , ");
+			int[] bgColorRGB = null;
+			int[] fgColorRGB = null;
+			String fontFamily = null;
+			SpecialCase[] formatMatchers = null;
+			boolean isBold = false;
+			boolean isItalic = false;
+			double columnSize = 1;
+			int fontSize = 15;
+			Link isLink = null;
+			if (colAnnotation != null) {
+				String customname = colAnnotation.customname();
+				colName = (customname.length() <= 0) ? colName : customname;
+				bgColorRGB = colAnnotation.bgColor();
+				fgColorRGB = colAnnotation.fgColor();
+				fontFamily = colAnnotation.fontFamily();
+				fontSize = colAnnotation.fontSize();
+				columnSize = colAnnotation.columnSize();
+				formatMatchers = colAnnotation.formatMatchers();
+				String parentName = colAnnotation.parent();
+				isBold = colAnnotation.isBold();
+				isItalic = colAnnotation.isItalic();
+				isLink = colAnnotation.link();
+				if (parentName.trim().length() > 0) {
+					childAttributs.add(att);
+					mapParentNameAttribut.put(parentName, childAttributs);
+					continue;
+				}
+			}
+			tableColumn = createAndSetColumn(att, colName);
+			applyBasicFormat(columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, isLink);
+			matcherFormatting(formatMatchers, isLink);
+			listOfColumns.add(tableColumn);
 		}
+		if (childAttributs.size() == 1) {
+			Alert alert = new Alert(AlertType.ERROR);
+			alert.setHeaderText("Annotation Error");
+			alert.setContentText("Für Spalteverschachteltung muss mindestens 2 Kinder das gleiche paren haben");
+			alert.show();
+			return;
+		}
+		mergeColumns(mapParentNameAttribut);
 		sb.toString().trim();
 		logger.log(Level.INFO, "Columns initialised [" + sb.toString() + "]");
 		this.tableView.getColumns().clear();
 		this.tableView.getColumns().setAll(listOfColumns);
+		initColumnsOrderMap();
 	}
 
-	/**
-	 * This function initialize table columns of a POJO. The columns name are map in the hash variable .
-	 * the key to get a column from the hash is the corresponding fields name in the POJO.
-	 *
-	 * @param entityClazz: the class name of the PoJo
-	 * @param columnname: hash Variable where columns name are mapped
-	 */
-	public void initColumnSetValueFactory(Class entityClazz, HashMap<String, String> columnname){
-		listOfColumns = new ArrayList<TableColumnHelper>();
-		Field[] attributes = entityClazz.getDeclaredFields();
-		int i = 0;
-		StringBuilder sb = new StringBuilder();
-		for (Field att : attributes) {
-			tableColumn = new TableColumnHelper(columnname.get(att.getName()));
-			if (att.getType().isAssignableFrom(String.class)
-					|| att.getType().isAssignableFrom(SimpleStringProperty.class)) {
-				// associate data to column using setCellValueFactory
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(StringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Integer.class)
-					|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(IntegerStringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Long.class)
-					|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Long>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(LongStringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Double.class)
-					|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Double>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(DoubleStringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Date.class)
-					|| att.getType().isAssignableFrom(ObjectProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(DateStringConverter.class);
-				listOfColumns.add(tableColumn);
-			} else if (att.getType().isAssignableFrom(Float.class)
-					|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
-				tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(attributes[i++].getName()));
-				tableColumn.setConverterClazz(FloatStringConverter.class);
-				listOfColumns.add(tableColumn);
+	private void applyBasicFormat(double columnSize, int[] bgColorRGB, int[] fgColorRGB, boolean isBold, boolean isItalic, String fontFamily,
+					Link isLink, int... fontSize) {
+		tableColumn.setMinWidth(columnSize);
+		String bg = "", fg = "";
+		if (bgColorRGB != null) {
+			if (bgColorRGB[0] != 255 || bgColorRGB[1] != 255 || bgColorRGB[2] != 255) {
+
+				bg += "-fx-background-color:rgb(" + bgColorRGB[0] + "," + bgColorRGB[1] + "," + bgColorRGB[2] + ");";
 			}
-			sb.append(tableColumn.getText() + " , ");
 		}
-		sb.toString().trim();
-		logger.log(Level.INFO, "Columns initialised [" + sb.toString() + "]");
-		this.tableView.getColumns().clear();
-		this.tableView.getColumns().setAll(listOfColumns);
-	}
-	/**
-	 * @deprecated: the method is not completely implemented Assign an Event
-	 *              handler to the given Component depending on they type.
-	 *              button --> setOnAction Event Combo-, Radio-, CheckBox -->
-	 *              setOnChange Event TextField --> onKeyReleased Event
-	 *
-	 * @param component:
-	 *            component on which the event is applied
-	 * @param serviceClass:
-	 *            Class where the method is implement in
-	 * @param method:
-	 *            The function to be execute by event-handling
-	 * @author ca.leumaleu
-	 */
-	private void assignEvent(Object component, Class serviceClass, String method) {
-		if (component instanceof Button) {
-			((Button) component).setOnAction((event) -> {
-				try {
-					Object t = serviceClass.newInstance();
-					Method[] allMethods = serviceClass.getDeclaredMethods();
-					for (Method m : allMethods) {
-						String mname = m.getName();
-						if (!mname.startsWith(method) || (m.getGenericReturnType() != void.class)) {
-							continue;
-						}
-						m.setAccessible(true);
-						Object o = m.invoke(t);
-					}
-				} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-						| InvocationTargetException x) {
-					x.printStackTrace();
-				}
-
-			});
-		} else if (component instanceof ComboBox) {
-			((ComboBox) component).setOnAction((event) -> {
-				try {
-					Object t = serviceClass.newInstance();
-					Method[] allMethods = serviceClass.getDeclaredMethods();
-					for (Method m : allMethods) {
-						String mname = m.getName();
-						if (!mname.startsWith(method) || (m.getGenericReturnType() != void.class)) {
-							continue;
-						}
-						m.setAccessible(true);
-						Object o = m.invoke(t);
-					}
-				} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-						| InvocationTargetException x) {
-					x.printStackTrace();
-				}
-
-			});
-		} else if (component instanceof Label) {
-			((Label) component).setOnMouseReleased((event) -> {
-				try {
-					Object t = serviceClass.newInstance();
-					Method[] allMethods = serviceClass.getDeclaredMethods();
-					for (Method m : allMethods) {
-						String mname = m.getName();
-						if (!mname.startsWith(method) || (m.getGenericReturnType() != void.class)) {
-							continue;
-						}
-						m.setAccessible(true);
-						Object o = m.invoke(t);
-					}
-				} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-						| InvocationTargetException x) {
-					x.printStackTrace();
-				}
-
-			});
+		if (fgColorRGB != null) {
+			if (fgColorRGB[0] != 255 || fgColorRGB[1] != 255 || fgColorRGB[2] != 255) {
+				fg += "-fx-text-fill:rgb(" + fgColorRGB[0] + "," + fgColorRGB[1] + "," + fgColorRGB[2] + ");";
+			}
+		}
+		if (isItalic) {
+			fg += "-fx-font-style:italic;";
+		}
+		if (isBold) {
+			fg += "-fx-font-weight:bold;";
 		}
 
+		if (fontSize.length > 0) {
+			fg += "-fx-font-size:" + fontSize[0] + ";";
+		}
+
+		if (fontFamily != null && !fontFamily.isEmpty()) {
+			fg += "-fx-font-family:" + fontFamily + ";";
+		}
+
+		formatCell(tableColumn, fg, bg, isLink);
 	}
 
-	/**
-	 * to assign a graphic component to a cell
-	 *
-	 * @deprecated: this method is not completely implemented
-	 * @param column
-	 * @param componentClass:
-	 *            entity Class
-	 * @param serviceClass:
-	 *            to get via reflexion the service Class where the method is
-	 *            implemented in
-	 * @param method:
-	 *            to be call by the Event handler
-	 * @param itemListForListComponent
-	 *            for example if the component is a Combobox
-	 */
-	private void applyGraphic(TableColumnHelper column, Node node, String name) {
+	private void matcherFormatting(SpecialCase[] formatMatchers, Link isLink) {
+		if (formatMatchers != null) {
+			formatForMatchers(tableColumn, formatMatchers, isLink);
+		}
+	}
+
+	private void initColumnsOrderMap() {
+		for (TableColumnHelper column : listOfColumns) {
+			columnsOrderMap.put(column.getText(), listOfColumns.indexOf(column));
+		}
+	}
+
+	private void formatForMatchers(TableColumnHelper column, SpecialCase[] formatMatchers, Link isLink) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
+
 			@Override
 			public TableCell call(TableColumn param) {
 				TableCell cell = new TableCell() {
+
 					@Override
 					public void updateItem(Object item, boolean empty) {
 						if (item != null) {
+							AnchorPane pane = new AnchorPane();
+							pane.setMinHeight(USE_COMPUTED_SIZE);
+							pane.setMinWidth(USE_COMPUTED_SIZE);
+							pane.setPrefHeight(20);
+							pane.setPrefWidth(100);
+							VBox vb = new VBox();
+							if (isLink != null && !isLink.clazz().isAssignableFrom(Column.class)) {
+								Hyperlink link = new Hyperlink(item.toString());
+								link.setUnderline(true);
+								vb.getChildren().add(link);
+								link.setOnAction(new EventHandler<ActionEvent>() {
+									@Override
+									public void handle(ActionEvent event) {
+//										T en = (T)param.getTableView().getSelectionModel().getSelectedItem();
+//										String id = findAttrValueByMethod(en.getClass(), "getId");
+//										run(isLink.clazz(), isLink.method(), id);
+									}
+								});
+							} else {
+								Label label = new Label(item.toString());
+								vb.getChildren().add(label);
+							}
+							pane.getChildren().add(vb);
+							for (SpecialCase matcher : formatMatchers) {
+								if (matcher.value()[0].equals(item.toString())) {
+									pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + matcher.value()[1]);
+									break;
+								} else {
+									pane.setStyle(null);// important!!
+								}
+							}
+							setGraphic(pane);
+						} else {
+							setText(null);
+							setGraphic(null);
+							setStyle(null);
+						}
+					}
+				};
+				return cell;
+			}
+		});
+	}
+
+	private void formatCell(TableColumnHelper column, String fg, String bg, Link isLink) {
+		column.setCellFactory(new Callback<TableColumn, TableCell>() {
+
+			@Override
+			public TableCell call(TableColumn param) {
+				TableCell cell = new TableCell() {
+
+					@Override
+					public void updateItem(Object item, boolean empty) {
+						if (item != null) {
+							AnchorPane pane = new AnchorPane();
+							pane.setMinHeight(USE_COMPUTED_SIZE);
+							pane.setMinWidth(USE_COMPUTED_SIZE);
+							pane.setPrefHeight(20);
+							pane.setPrefWidth(100);
+							VBox vb = new VBox();
+
+							if (isLink != null && !isLink.clazz().isAssignableFrom(Column.class)) {
+								Hyperlink link = new Hyperlink(item.toString());
+								link.setUnderline(true);
+								link.setStyle(fg);
+								
+								link.setOnAction(new EventHandler<ActionEvent>() {
+									@Override
+									public void handle(ActionEvent event) {
+//										T en = (T)param.getTableView().getSelectionModel().getSelectedItem();
+//										String id = findAttrValueByMethod(en.getClass(), "getId");
+//										run(isLink.clazz(), isLink.method(), id);
+									}
+								});
+								vb.getChildren().add(link);
+							} else {
+								Label label = new Label(item.toString());
+								label.setStyle(fg);
+								vb.getChildren().add(label);
+							}
+							pane.getChildren().add(vb);
+							pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + bg);
+							setGraphic(pane);
+						} else {
+							setText(null);
+							setGraphic(null);
+						}
+					}
+				};
+				return cell;
+			}
+		});
+	}
+
+	public String findAttrValueByMethod(Class clazz, String method) {
+		Object o = null;
+		try {
+			Object t = clazz.newInstance();
+			Method[] allMethods = clazz.getDeclaredMethods();
+			for (Method m : allMethods) {
+				String mname = m.getName();
+				if (!mname.startsWith(method) || (m.getGenericReturnType() != void.class)) {
+					continue;
+				}
+				m.setAccessible(true);
+				o = m.invoke(t);
+				return o.toString();
+			}
+		}
+		catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | InstantiationException e) {
+			logger.log(Level.SEVERE, "Commit action could not be perform " + e.getMessage());
+		}
+		return null;
+	}
+
+	public void run(Class clazz, String method, String param) {
+
+		try {
+			Object t = clazz.newInstance();
+			Method[] allMethods = clazz.getDeclaredMethods();
+			Method m;
+			try {
+				m = clazz.getDeclaredMethod(method, String.class);
+				m.invoke(t, param);
+			}
+			catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			}
+		}
+		catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
+	private void setTextFieldFactory(TableColumnHelper column) {
+
+		column.setCellFactory(new Callback<TableColumn, TableCell>() {
+
+			@Override
+			public TableCell call(TableColumn p) {
+				TextFieldTableCell cell = new TextFieldTableCell(new StringConverter() {
+
+					@Override
+					public String toString(Object t) {
+						return t.toString();
+					}
+
+					@Override
+					public Object fromString(String string) {
+						return string;
+					}
+				});
+
+				return cell;
+			}
+		});
+	}
+
+	private void mergeColumns(HashMap<String, List<Field>> map) {
+
+		for (Map.Entry<String, List<Field>> entry : map.entrySet()) {
+			String parentName = entry.getKey();
+			List<Field> childAttributs = entry.getValue();
+			TableColumnHelper parentCol = new TableColumnHelper(parentName);
+			int[] bgColorRGB = null;
+			int[] fgColorRGB = null;
+			String fontFamily = null;
+			SpecialCase[] formatMatchers = null;
+			boolean isBold = false;
+			boolean isItalic = false;
+			double columnSize = 100;
+			int fontSize = 15;
+			Link isLink = null;
+			Column colAnnotation;
+			for (Field childAttribut : childAttributs) {
+				colAnnotation = childAttribut.getAnnotation(Column.class);
+				bgColorRGB = colAnnotation.bgColor();
+				fgColorRGB = colAnnotation.fgColor();
+				fontFamily = colAnnotation.fontFamily();
+				fontSize = colAnnotation.fontSize();
+				columnSize = colAnnotation.columnSize();
+				formatMatchers = colAnnotation.formatMatchers();
+				isBold = colAnnotation.isBold();
+				isLink = colAnnotation.link();
+				isItalic = colAnnotation.isItalic();
+				bgColorRGB = colAnnotation.bgColor();
+				formatMatchers = colAnnotation.formatMatchers();
+				String colName = childAttribut.getName();
+				String customname = colAnnotation.customname();
+				colName = (customname.length() <= 0) ? colName : customname;
+				tableColumn = createAndSetColumn(childAttribut, colName);
+				matcherFormatting(formatMatchers, isLink);
+				applyBasicFormat(columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, isLink);
+				parentCol.getColumns().add(tableColumn);
+			}
+			listOfColumns.add(parentCol);
+		}
+
+	}
+
+	private TableColumnHelper createAndSetColumn(Field att, String colName) {
+		tableColumn = new TableColumnHelper(colName);
+		// associate data to column using setCellValueFactory
+		if (att.getType().isAssignableFrom(String.class) || att.getType().isAssignableFrom(SimpleStringProperty.class)) {
+			tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(att.getName()));
+			tableColumn.setConverterClazz(StringConverter.class);
+		} else if (att.getType().isAssignableFrom(Integer.class) || att.getType().isAssignableFrom(int.class)
+						|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
+			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(att.getName()));
+			tableColumn.setConverterClazz(IntegerStringConverter.class);
+		} else if (att.getType().isAssignableFrom(Long.class) || att.getType().isAssignableFrom(long.class)
+						|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
+			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Long>(att.getName()));
+			tableColumn.setConverterClazz(LongStringConverter.class);
+		} else if (att.getType().isAssignableFrom(Double.class) || att.getType().isAssignableFrom(double.class)
+						|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
+			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Double>(att.getName()));
+			tableColumn.setConverterClazz(DoubleStringConverter.class);
+		} else if (att.getType().isAssignableFrom(Date.class) || att.getType().isAssignableFrom(LocalDate.class)) {
+			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(att.getName()));
+			tableColumn.setConverterClazz(DateStringConverter.class);
+		} else if (att.getType().isAssignableFrom(Float.class) || att.getType().isAssignableFrom(float.class)
+						|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
+			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(att.getName()));
+			tableColumn.setConverterClazz(FloatStringConverter.class);
+		} else {
+			System.err.println(" Unzulässige Annotierung von Spalte " + att.getName()
+							+ ". Nur Spalte mit primitiv Datentyp dürfen hier annotiert werden");
+			Alert alert = new Alert(AlertType.ERROR);
+			alert.setHeaderText("Programmiere Fehler");
+			alert.setContentText("Sorry technische Fehler. Wir melden uns sobald das Problem gelöst wird ;)");
+			alert.show();
+			System.exit(1);
+		}
+		return tableColumn;
+	}
+
+	private void setCellBgColor(TableColumn column, int r, int g, int b) {
+		column.setCellFactory(new Callback<TableColumn, TableCell>() {
+
+			@Override
+			public TableCell call(TableColumn param) {
+				TableCell cell = new TableCell() {
+
+					@Override
+					public void updateItem(Object item, boolean empty) {
+						if (item != null) {
+							AnchorPane pane = new AnchorPane();
+							pane.setStyle("-fx-background-color:rgb(" + r + "," + g + "," + b + ");");
+							pane.setMinHeight(USE_COMPUTED_SIZE);
+							pane.setMinWidth(USE_COMPUTED_SIZE);
+							pane.setPrefHeight(20);
+							pane.setPrefWidth(100);
+							VBox vb = new VBox();
+							vb.getChildren().add(new Label(item.toString()));
+							pane.getChildren().add(vb);
+							setGraphic(pane);
+							setText(null);
+						} else {
+							setText(null);
+							setGraphic(null);
+						}
+					}
+				};
+				return cell;
+			}
+		});
+	}
+
+
+	/**
+	 * to assign a graphic component to a cell. value displayed before the
+	 * graphic component is the existing value in the cell.
+	 *
+	 * @param column
+	 * @param node
+	 * @param direction
+	 */
+	private void applyGraphic(TableColumnHelper column, Node node) {
+		column.setCellFactory(new Callback<TableColumn, TableCell>() {
+
+			@Override
+			public TableCell call(TableColumn param) {
+				TableCell cell = new TableCell() {
+
+					@Override
+					public void updateItem(Object item, boolean empty) {
+						if (item != null) {
+							setText(null);
 							setGraphic(node);
-							setText(name);
 						}
 					}
 				};
@@ -306,24 +554,54 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	 *
 	 * @deprecated: method not completely implemented
 	 * @param columnsName:
-	 *            array containing the columns name. If "ALL" is given then
-	 *            Graphic will be assign on all column.
+	 *        array containing the columns name. If "ALL" is given then
+	 *        Graphic will be assign on all column.
 	 * @param componentClass:
-	 *            the class of the components category you want to display in
-	 *            the table
+	 *        the class of the components category you want to display in
+	 *        the table
 	 * @param serviceClass:
-	 *            use to access via reflexion the method insides which will be
-	 *            execute when the Event will be fired.
+	 *        use to access via reflexion the method insides which will be
+	 *        execute when the Event will be fired.
 	 * @param method
 	 * @param itemListForListComponent:
-	 *            i.e. combobox does not have a other Eventhandler as Button
+	 *        i.e. combobox does not have a other Eventhandler as Button
 	 */
 	public void assignGraphicToColumn(Node node, String... columnsName) {
 		List<String> columnsnameList = Arrays.asList(columnsName);
 		int i = 0;
 		for (TableColumnHelper column : listOfColumns) {
 			if (columnsnameList.contains(column.getText())) {
-				applyGraphic(column, node, "ss");
+				applyGraphic(column, node);
+			}
+		}
+		tableView.getColumns().clear();
+		tableView.getColumns().addAll(listOfColumns);
+	}
+
+	/**
+	 * render the given column by assigning a component which Class correspond
+	 * to the given class.
+	 *
+	 * @deprecated: method not completely implemented
+	 * @param columnsName:
+	 *        array containing the columns name. If "ALL" is given then
+	 *        Graphic will be assign on all column.
+	 * @param componentClass:
+	 *        the class of the components category you want to display in
+	 *        the table
+	 * @param serviceClass:
+	 *        use to access via reflexion the method insides which will be
+	 *        execute when the Event will be fired.
+	 * @param method
+	 * @param itemListForListComponent:
+	 *        i.e. combobox does not have a other Eventhandler as Button
+	 */
+	public void setCustomCellFactory(Node customControl, String... columnsName) {
+		List<String> columnsnameList = Arrays.asList(columnsName);
+		int i = 0;
+		for (TableColumnHelper column : listOfColumns) {
+			if (columnsnameList.contains(column.getText())) {
+				applyGraphic(column, customControl);
 			}
 		}
 		tableView.getColumns().clear();
@@ -334,171 +612,121 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	 * hide the given columns. Muss be call before the
 	 * assignCellFactoryToSpecificColumn function.
 	 *
-	 * @param entityClass:
-	 *            Object Class
 	 * @param columnToBeExclude
 	 */
-	public void excludeColumns(Class entityClass, String... columnToBeExclude) {
-		List<TableColumnHelper> newListOfColumns = new ArrayList<TableColumnHelper>();
-		List<String> listeExclude = Arrays.asList(columnToBeExclude);
+	public void excludeColumns(String... columnToBeExclude) {
+		List<String> toBeExcludedColumnNames = Arrays.asList(columnToBeExclude);
 		StringBuilder sb = new StringBuilder();
-		sb.append("tables columns are now [");
+		int index = 0;
 		for (TableColumnHelper tableColumnHelper : listOfColumns) {
-			if (!listeExclude.contains(tableColumnHelper.getText())) {
-				newListOfColumns.add(tableColumnHelper);
+			if (toBeExcludedColumnNames.contains(tableColumnHelper.getText())) {
+				excludedColumns.add(tableColumnHelper);
 				sb.append(tableColumnHelper.getText() + " ");
 			}
 		}
-		sb.append("]");
-		sb.toString().trim();
-		logger.log(Level.INFO, sb.toString().trim());
-		this.tableView.getColumns().removeAll(listOfColumns);
-		this.tableView.getColumns().setAll(newListOfColumns);
-	}
-	/*
-	 *
-	 */
-
-	@Override
-	public void addContextMenuToColumn(String column, Class<T> clazz) {
+		listOfColumns.removeAll(excludedColumns);
+		this.tableView.getColumns().clear();
+		this.tableView.getColumns().addAll(listOfColumns);
 	}
 
+	public void excludeColumn(TableColumnHelper column) {
+		excludedColumns.add(column);
+		listOfColumns.remove(column);
+		this.tableView.getColumns().clear();
+		this.tableView.getColumns().addAll(listOfColumns);
+	}
 
-	private void applyCellFactoryTo(TableColumnHelper tabColumn, CellFactoryTyp cellFactoryTyp,
-			List<T> listItemsForCombobox, Class converterClazz) {
-		if (cellFactoryTyp == CellFactoryTyp.CHECKBOXTABLECELL) {
-			tabColumn.setCellFactory(column -> {
-				return new CheckBoxTableCell();
-			});
-		} else if (cellFactoryTyp == CellFactoryTyp.COMBOBOXTABLECELL) {
-			if (listItemsForCombobox != null && listItemsForCombobox.size() > 0) {
-				ObservableList<T> ol = FXCollections.observableArrayList(listItemsForCombobox);
-				tabColumn.setCellFactory(column -> {
-					if (converterClazz.isAssignableFrom(StringConverter.class)) {
-						return new ComboBoxTableCell(ol);
-					} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
-						return new ComboBoxTableCell(new DateStringConverter(), ol);
-					} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
-						return new ComboBoxTableCell(new LongStringConverter(), ol);
-					} else if (converterClazz.isAssignableFrom(IntegerStringConverter.class)) {
-						return new ComboBoxTableCell(new IntegerStringConverter(), ol);
-					} else if (converterClazz.isAssignableFrom(DoubleStringConverter.class)) {
-						return new ComboBoxTableCell(new DoubleStringConverter(), ol);
-					} else if (converterClazz.isAssignableFrom(FloatStringConverter.class)) {
-						return new ComboBoxTableCell(new FloatStringConverter(), ol);
+	public void includeColumns(String... columnToBeInclude) {
+		List<String> toBeIncludedColumnNames = Arrays.asList(columnToBeInclude);
+		List<TableColumnHelper> helperList = new ArrayList<TableColumnHelper>();
+		for (TableColumnHelper tableColumnHelper : excludedColumns) {
+			if (toBeIncludedColumnNames.contains(tableColumnHelper.getText())) {
+				listOfColumns.add(tableColumnHelper);
+				helperList.add(tableColumnHelper);
+			}
+		}
+		excludedColumns.removeAll(helperList);
+		this.tableView.getColumns().clear();
+		this.tableView.getColumns().addAll(listOfColumns);
+	}
+
+	public void includeColumn(TableColumnHelper column) {
+		excludedColumns.remove(column);
+		listOfColumns.add(column);
+		this.tableView.getColumns().clear();
+		this.tableView.getColumns().addAll(listOfColumns);
+	}
+
+
+	public void setTextFieldTableCellFactory(TableColumnHelper tabColumn, Class converterClazz) {
+		tabColumn.setCellFactory(column -> {
+			if (converterClazz.isAssignableFrom(StringConverter.class)) {
+				return new TextFieldTableCell(new StingConverterHelper());
+			} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
+				return new TextFieldTableCell(new DateStringConverter());
+			} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
+				return new TextFieldTableCell(new LongStringConverter());
+			} else if (converterClazz.isAssignableFrom(IntegerStringConverter.class)) {
+				return new TextFieldTableCell(new IntegerStringConverter());
+			} else if (converterClazz.isAssignableFrom(DoubleStringConverter.class)) {
+				return new TextFieldTableCell(new DoubleStringConverter());
+			} else if (converterClazz.isAssignableFrom(FloatStringConverter.class)) {
+				return new TextFieldTableCell(new FloatStringConverter());
+			}
+			return null;
+		});
+	}
+
+	public void setComboboxTableCellFactory(TableColumn tabColumn, Class converterClazz, ObservableList<T> ol) {
+		tabColumn.setCellFactory(column -> {
+			if (converterClazz.isAssignableFrom(StringConverter.class)) {
+				return new ComboBoxTableCell(ol);
+			} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
+				return new ComboBoxTableCell(new DateStringConverter(), ol);
+			} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
+				return new ComboBoxTableCell(new LongStringConverter(), ol);
+			} else if (converterClazz.isAssignableFrom(IntegerStringConverter.class)) {
+				return new ComboBoxTableCell(new IntegerStringConverter(), ol);
+			} else if (converterClazz.isAssignableFrom(DoubleStringConverter.class)) {
+				return new ComboBoxTableCell(new DoubleStringConverter(), ol);
+			} else if (converterClazz.isAssignableFrom(FloatStringConverter.class)) {
+				return new ComboBoxTableCell(new FloatStringConverter(), ol);
+			}
+			return null;
+		});
+	}
+
+
+	public void setCheckBoxTableCellFactory(TableColumn tabColumn) {
+		tabColumn.setCellFactory(column -> {
+			return new CheckBoxTableCell();
+		});
+	}
+
+	public void setTextFieldCellFactory(TableColumnHelper column) {
+		column.setCellFactory(new Callback<TableColumn<T, String>, TableCell<T, String>>() {
+
+			String cellValue = "";
+
+			@Override
+			public TableCell call(TableColumn p) {
+
+				TextFieldTableCell cell = new TextFieldTableCell(new StringConverter() {
+
+					@Override
+					public String toString(Object t) {
+						cellValue = t.toString();
+						return t.toString();
 					}
-					return null;
-				});
-			}
-		} else if (cellFactoryTyp == CellFactoryTyp.TEXTFIELDTABLECELL) {
-			tabColumn.setCellFactory(column -> {
-				if (converterClazz.isAssignableFrom(StringConverter.class)) {
-					return new TextFieldTableCell(new StingConverterHelper());
-				} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
-					return new TextFieldTableCell(new DateStringConverter());
-				} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
-					return new TextFieldTableCell(new LongStringConverter());
-				} else if (converterClazz.isAssignableFrom(IntegerStringConverter.class)) {
-					return new TextFieldTableCell(new IntegerStringConverter());
-				} else if (converterClazz.isAssignableFrom(DoubleStringConverter.class)) {
-					return new TextFieldTableCell(new DoubleStringConverter());
-				} else if (converterClazz.isAssignableFrom(FloatStringConverter.class)) {
-					return new TextFieldTableCell(new FloatStringConverter());
-				}
-				return null;
-			});
-		}
-	}
 
-	/**
-	 * apply the desired factory on the given column
-	 *
-	 * @param tabColumn:
-	 *            the column to apply the factory on
-	 * @param converterClazz:
-	 *            to find out the converter to be applied on the column
-	 * @param listItemsForCombobox:
-	 *            list of combobox item. has to be setted to null if the the
-	 *            cellFactory type is not a combobox
-	 * @param cellFactoryTyp:
-	 *            the factoryTyp to be applied
-	 * @author ca.leumaleu
-	 */
-	@Override
-	public void applyCellFactoryTo(TableColumn tabColumn, CellFactoryTyp cellFactoryTyp, List<T> listItemsForCombobox,
-			Class converterClazz) {
-		if (cellFactoryTyp == CellFactoryTyp.CHECKBOXTABLECELL) {
-			tabColumn.setCellFactory(column -> {
-				return new CheckBoxTableCell();
-			});
-		} else if (cellFactoryTyp == CellFactoryTyp.COMBOBOXTABLECELL) {
-			if (listItemsForCombobox != null && listItemsForCombobox.size() > 0) {
-				ObservableList<T> ol = FXCollections.observableArrayList(listItemsForCombobox);
-				tabColumn.setCellFactory(column -> {
-					if (converterClazz.isAssignableFrom(StringConverter.class)) {
-						return new ComboBoxTableCell(ol);
-					} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
-						return new ComboBoxTableCell(new DateStringConverter(), ol);
-					} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
-						return new ComboBoxTableCell(new LongStringConverter(), ol);
-					} else if (converterClazz.isAssignableFrom(IntegerStringConverter.class)) {
-						return new ComboBoxTableCell(new IntegerStringConverter(), ol);
-					} else if (converterClazz.isAssignableFrom(DoubleStringConverter.class)) {
-						return new ComboBoxTableCell(new DoubleStringConverter(), ol);
-					} else if (converterClazz.isAssignableFrom(FloatStringConverter.class)) {
-						return new ComboBoxTableCell(new FloatStringConverter(), ol);
+					@Override
+					public Object fromString(String string) {
+						return string;
 					}
-					return null;
 				});
+				return cell;
 			}
-		} else if (cellFactoryTyp == CellFactoryTyp.TEXTFIELDTABLECELL) {
-			tabColumn.setCellFactory(column -> {
-				if (converterClazz.isAssignableFrom(StringConverter.class)) {
-					return new TextFieldTableCell(new StingConverterHelper());
-				} else if (converterClazz.isAssignableFrom(DateStringConverter.class)) {
-					return new TextFieldTableCell(new DateStringConverter());
-				} else if (converterClazz.isAssignableFrom(LongStringConverter.class)) {
-					return new TextFieldTableCell(new LongStringConverter());
-				} else if (converterClazz.isAssignableFrom(IntegerStringConverter.class)) {
-					return new TextFieldTableCell(new IntegerStringConverter());
-				} else if (converterClazz.isAssignableFrom(DoubleStringConverter.class)) {
-					return new TextFieldTableCell(new DoubleStringConverter());
-				} else if (converterClazz.isAssignableFrom(FloatStringConverter.class)) {
-					return new TextFieldTableCell(new FloatStringConverter());
-				}
-				return null;
-			});
-		}
-	}
-
-	/**
-	 * apply the desired factory on the given columns
-	 *
-	 * @param cellFactoryTyp:
-	 *            the factoryTyp to be applied.
-	 * @param listItemsForCombobox:
-	 *            list of combobox item. has to be setted to null if the the
-	 *            cellFactory type is not a combobox
-	 * @param columns:
-	 *            list of columns to apply the factory on
-	 * @author ca.leumaleu
-	 */
-	@Override
-	public void applyCellFactoryTo(CellFactoryTyp cellFactoryTyp, List<T> listItemsForCombobox, String... columns) {
-		if (columns.length <= 0 || (columns.length == 1 && columns[0].equals("ALL"))) {
-			for (TableColumnHelper tableColumnHelper : listOfColumns) {
-				applyCellFactoryTo(tableColumnHelper, cellFactoryTyp, listItemsForCombobox,
-						tableColumnHelper.getConverterClazz());
-			}
-		} else {
-			List<String> colList = Arrays.asList(columns);
-			for (TableColumnHelper tableColumnHelper : listOfColumns) {
-				if (colList.contains(tableColumnHelper.getText())) {
-					applyCellFactoryTo(tableColumnHelper, cellFactoryTyp, listItemsForCombobox,
-							tableColumnHelper.getConverterClazz());
-				}
-			}
-		}
+		});
 	}
 
 	/**
@@ -506,27 +734,25 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	 * Service class after an edit action is done
 	 *
 	 * @param serviceClazz:
-	 *            to access the class where the method to be execute is declared
+	 *        to access the class where the method to be execute is declared
 	 * @param method:
-	 *            name of the method to be execute
+	 *        name of the method to be execute
 	 * @author ca.leumaleu
 	 */
-	@Override
 	public void performOnEditCommit(Class serviceClazz, String method) {
 		for (TableColumnHelper tableColumnHelper : listOfColumns) {
+			tableColumnHelper.setCellFactory(TextFieldTableCell.forTableColumn());
 			tableColumnHelper.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
+
 				@Override
 				public void handle(CellEditEvent event) {
 					T en = ((T) event.getTableView().getItems().get(event.getTablePosition().getRow()));
 					Object o = null;
 					String newValue = event.getNewValue().toString();
-					String fieldName = ((PropertyValueFactory) event.getTableColumn().getCellValueFactory())
-							.getProperty();
+					String fieldName = ((PropertyValueFactory) event.getTableColumn().getCellValueFactory()).getProperty();
 					try {
-						en.getClass()
-								.getMethod("set" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1),
-										String.class)
-								.invoke(en, newValue);
+						en.getClass().getMethod("set" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1), String.class).invoke(en,
+										newValue);
 						Object t = serviceClazz.newInstance();
 						Method[] allMethods = serviceClazz.getDeclaredMethods();
 						for (Method m : allMethods) {
@@ -537,13 +763,46 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 							m.setAccessible(true);
 							o = m.invoke(t, en);
 						}
-					} catch (SecurityException | IllegalAccessException | IllegalArgumentException
-							| InvocationTargetException | NoSuchMethodException | InstantiationException e) {
+					}
+					catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+									| InstantiationException e) {
 						logger.log(Level.SEVERE, "Commit action could not be perform " + e.getMessage());
 					}
 				}
 			});
 		}
+	}
+
+	public void onEditCommit(Class clazz, String method) {
+		for (TableColumnHelper tableColumnHelper : listOfColumns) {
+			tableColumnHelper.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
+
+				@Override
+				public void handle(CellEditEvent event) {
+					Object o = null;
+					String newValue = event.getNewValue().toString();
+					String fieldName = ((PropertyValueFactory) event.getTableColumn().getCellValueFactory()).getProperty();
+					try {
+						Object t = clazz.newInstance();
+						Method[] allMethods = clazz.getDeclaredMethods();
+						for (Method m : allMethods) {
+							String mname = m.getName();
+							if (!mname.startsWith(method) || (m.getGenericReturnType() != void.class)) {
+								continue;
+							}
+							m.setAccessible(true);
+							o = m.invoke(t);
+						}
+					}
+					catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+									| InstantiationException e) {
+						logger.log(Level.SEVERE, "Commit action could not be perform " + e.getMessage());
+					}
+				}
+			});
+
+		}
+
 	}
 
 	private class StingConverterHelper extends StringConverter {
@@ -561,87 +820,43 @@ public class TableViewManager<T> implements ITableViewManager<T> {
 	}
 
 	/**
-	 * set a Button as graphic.
-	 * @param serviceClazz
-	 * @param method: performed when the button is clicked
-	 * @param css: String containing the css to be apply on the column. For example
-	 * 		.btn{
-	 * 			-fx-width:300px;
-	 * 			...
-	 * 		}
-	 * @param columns
+	 * set the selections mode
+	 *
+	 * @param selectionMode
 	 */
-	@Override
-	public void applyButtonCellFactoryToColumns(Class serviceClazz, String method, String css, String... columns) {
-		if (columns.length <= 0 || (columns.length == 1 && columns[0].equals("ALL"))) {
-			for (TableColumnHelper tableColumnHelper : listOfColumns) {
-				if (tableColumnHelper.equals(tableColumnHelper.getText())) {
-					applyButtonFactory(tableColumnHelper, serviceClazz, method, css);
-				}
-			}
-		} else {
-			List<String> colList = Arrays.asList(columns);
-			for (TableColumnHelper tableColumnHelper : listOfColumns) {
-				if (colList.contains(tableColumnHelper.getText())) {
-					applyButtonFactory(tableColumnHelper, serviceClazz, method, css);
-				}
-			}
+	public void setCellSelectionMode(SelectionMode selectionMode) {
+		tableView.getSelectionModel().setCellSelectionEnabled(true);
+		tableView.getSelectionModel().setSelectionMode(selectionMode);
+	}
+
+	public void setCellSelection(boolean b) {
+		tableView.getSelectionModel().setCellSelectionEnabled(b);
+	}
+
+	public void hideTableHeader(TableView<T> table) {
+		// Don't show header
+		Pane header = (Pane) table.lookup("TableHeaderRow");
+		if (header.isVisible()) {
+			header.setMaxHeight(0);
+			header.setMinHeight(0);
+			header.setPrefHeight(0);
+			header.setVisible(false);
 		}
 	}
 
-	private void applyButtonFactory(TableColumnHelper tableColumnHelper, Class serviceClazz, String method, String css) {
-		tableColumnHelper.setCellFactory(new Callback<TableColumn, TableCell>() {
-			@Override
-			public TableCell call(TableColumn param) {
-				TableCell cell = new TableCell() {
-					@Override
-					public void updateItem(Object item, boolean empty) {
-						if (item != null) {
-							Button btn = new Button(item.toString());
-							btn.setPrefWidth(tableColumnHelper.getPrefWidth());
-							btn.setPrefHeight(40.0);
-							assignEvent(btn, serviceClazz, method);
-							if(css.length() > 0)
-								btn.setStyle(css);
-							setGraphic(btn);
-						}
-					}
-				};
-				return cell;
-			}
-		});
+	public void hideTableHeader() {
+		// Don't show header
+		Pane header = (Pane) tableView.lookup("TableHeaderRow");
+		if (header.isVisible()) {
+			header.setMaxHeight(0);
+			header.setMinHeight(0);
+			header.setPrefHeight(0);
+			header.setVisible(false);
+		}
 	}
 
-
-	/**
-	 * set a Button as graphic that will perform the given function. The Button
-	 * Text is the text within the cell.
-	 * @param tableColumnHelper
-	 * @param serviceClazz
-	 * @param method
-	 * @param css
-	 */
-	@Override
-	public void applyButtonFactory(TableColumn tableColumn, Class serviceClazz, String method, String css) {
-		tableColumn.setCellFactory(new Callback<TableColumn, TableCell>() {
-			@Override
-			public TableCell call(TableColumn param) {
-				TableCell cell = new TableCell() {
-					@Override
-					public void updateItem(Object item, boolean empty) {
-						if (item != null) {
-							Button btn = new Button(item.toString());
-							btn.setPrefWidth(tableColumn.getPrefWidth());
-							btn.setPrefHeight(40.0);
-							assignEvent(btn, serviceClazz, method);
-							if(css.length() > 0)
-								btn.setStyle(css);
-							setGraphic(btn);
-						}
-					}
-				};
-				return cell;
-			}
-		});
+	public TableView<T> getTableView() {
+		return tableView;
+		
 	}
 }

@@ -1,0 +1,12 @@
+Fri Sep 23 08:26:33 CEST 2016 INFO PANIC SQL OPERATION <findAll> :
+select id, name, description, start_date, end_date, userID, projectID, projectActiv from Task
+
+Fri Sep 23 08:26:33 CEST 2016 SEVERE PANIC ERROR:
+Ungültiger Objektname 'Task'.
+
+Tue Sep 27 08:59:37 CEST 2016 INFO PANIC SQL OPERATION <findAll> :
+select id, name, description, start_date, end_date, userID, projectID, projectActiv from Task
+
+Tue Sep 27 08:59:38 CEST 2016 SEVERE PANIC ERROR:
+Ungültiger Objektname 'Task'.
+

@@ -1,4 +1,6 @@
-package com.tableview.manager;
+package com.tableview.manager.helper;
+
+import com.tableview.manager.enums.CellFactoryTyp;
 
 import javafx.scene.control.Cell;
 import javafx.scene.control.TableColumn;
