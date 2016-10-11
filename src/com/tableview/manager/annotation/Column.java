@@ -28,8 +28,9 @@ public @interface Column {
 	public boolean isItalic() default false;
 	
 	public int columnSize() default 100;
-	
+	@Deprecated
 	public SpecialCase[] formatMatchers() default {@SpecialCase(value={"",""})};
-	
-	public Link link() default @Link(clazz = Column.class, method = "");
+	public SpecialCase[] bgForGivenConditions() default {@SpecialCase(value={"",""})};
+	public SpecialCase[] fgForGivenConditions() default {@SpecialCase(value={"",""})};
+//	public Link link() default @Link(clazz = Column.class, url = "");
 }

@@ -50,7 +50,6 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
-import javafx.scene.control.Tab;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellEditEvent;
@@ -59,7 +58,6 @@ import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -74,24 +72,31 @@ import javafx.util.converter.LongStringConverter;
 @SuppressWarnings("all")
 public class TableViewManager<T> {
 
-	private TableView				tableView;
-	private TableColumnHelper		tableColumn;
-	private List<TableColumnHelper>	listOfColumns;
-	private List<TableColumnHelper>	excludedColumns;
-	private boolean					isUpdatable;
-	private static Logger			logger	= null;
-	HashMap<String, Integer>		columnsOrderMap;
+	private TableView			tableView;
+	private TableColumn			tableColumn;
+	private List<TableColumn>	listOfColumns;
+	private List<TableColumn>	excludedColumns;
+	private boolean				isUpdatable;
+	private static Logger		logger	= null;
+	private double				columnSize;
+	private int[]				bgColorRGB;
+	private int[]				fgColorRGB;
+	private boolean				isBold;
+	private boolean				isItalic;
+	private String				fontFamily;
+	private int					fontSize;
+	HashMap<String, Integer>	columnsOrderMap;
 
 	public TableViewManager(TableView tableView) {
 		this.tableView = tableView;
-		listOfColumns = new ArrayList<TableColumnHelper>();
-		excludedColumns = new ArrayList<TableColumnHelper>();
+		listOfColumns = new ArrayList<TableColumn>();
+		excludedColumns = new ArrayList<TableColumn>();
 		columnsOrderMap = new HashMap<String, Integer>();
 		logger = Logger.getLogger(this.getClass().getSimpleName());
 	}
 
 	public TableViewManager() {
-	
+
 	}
 
 	/**
@@ -112,17 +117,20 @@ public class TableViewManager<T> {
 
 	public void setItems(ObservableList<T> items) {
 		this.tableView.setItems(items);
-		if(items != null && !items.isEmpty())
+		if (items != null && !items.isEmpty())
 			initColumnAndSetValueFactory(items.get(0).getClass());
 	}
 
+	public ObjectProperty<T> itemsProperty() {
+		return tableView.itemsProperty();
+	}
 
-	public List<TableColumnHelper> getListOfColumns() {
+	public List<TableColumn> getListOfColumns() {
 		return listOfColumns;
 	}
 
 
-	public void setListOfColumns(List<TableColumnHelper> listOfColumns) {
+	public void setListOfColumns(List<TableColumn> listOfColumns) {
 		this.listOfColumns = listOfColumns;
 	}
 
@@ -134,7 +142,7 @@ public class TableViewManager<T> {
 	 *        the class name of the PoJo
 	 */
 	public void initColumnAndSetValueFactory(Class entityClazz) {
-		listOfColumns = new ArrayList<TableColumnHelper>();
+		listOfColumns = new ArrayList<TableColumn>();
 		Field[] attributes = entityClazz.getDeclaredFields();
 		List<Field> annotatedFields = new ArrayList<Field>();
 		List<Field> childAttributs = new ArrayList<Field>();
@@ -147,15 +155,16 @@ public class TableViewManager<T> {
 			if (transientAnnotation != null) {
 				continue;
 			}
-			int[] bgColorRGB = null;
-			int[] fgColorRGB = null;
-			String fontFamily = null;
-			SpecialCase[] formatMatchers = null;
-			boolean isBold = false;
-			boolean isItalic = false;
-			double columnSize = 1;
-			int fontSize = 15;
-			Link isLink = null;
+			bgColorRGB = null;
+			fgColorRGB = null;
+			fontFamily = null;
+			SpecialCase[] bgForGivenConditions = null;
+			SpecialCase[] fgForGivenConditions = null;
+			isBold = false;
+			isItalic = false;
+			columnSize = 1;
+			fontSize = 15;
+			// Link isLink = null;
 			if (colAnnotation != null) {
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
@@ -164,11 +173,12 @@ public class TableViewManager<T> {
 				fontFamily = colAnnotation.fontFamily();
 				fontSize = colAnnotation.fontSize();
 				columnSize = colAnnotation.columnSize();
-				formatMatchers = colAnnotation.formatMatchers();
+				bgForGivenConditions = colAnnotation.bgForGivenConditions();
+				fgForGivenConditions = colAnnotation.fgForGivenConditions();
 				String parentName = colAnnotation.parent();
 				isBold = colAnnotation.isBold();
 				isItalic = colAnnotation.isItalic();
-				isLink = colAnnotation.link();
+				// isLink = colAnnotation.link();
 				if (parentName.trim().length() > 0) {
 					childAttributs.add(att);
 					mapParentNameAttribut.put(parentName, childAttributs);
@@ -176,15 +186,15 @@ public class TableViewManager<T> {
 				}
 			}
 			tableColumn = createAndSetColumn(att, colName);
-			applyBasicFormat(columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, isLink);
-			matcherFormatting(formatMatchers, isLink);
+			matcherFormatting(bgForGivenConditions,fgForGivenConditions);
 			listOfColumns.add(tableColumn);
 		}
 		if (childAttributs.size() == 1) {
-			Alert alert = new Alert(AlertType.ERROR);
-			alert.setHeaderText("Annotation Error");
-			alert.setContentText("Für Spalteverschachteltung muss mindestens 2 Kinder das gleiche paren haben");
-			alert.show();
+			// Alert alert = new Alert(AlertType.ERROR);
+			// alert.setHeaderText("Annotation Error");
+			// alert.setContentText("Für Spalteverschachteltung muss mindestens 2 Kinder das gleiche parent haben");
+			// alert.show();
+			System.out.println("Für Spalteverschachteltung muss mindestens 2 Kinder das gleiche parent haben");
 			return;
 		}
 		mergeColumns(mapParentNameAttribut);
@@ -195,13 +205,13 @@ public class TableViewManager<T> {
 		initColumnsOrderMap();
 	}
 
-	private void applyBasicFormat(double columnSize, int[] bgColorRGB, int[] fgColorRGB, boolean isBold, boolean isItalic, String fontFamily,
-					Link isLink, int... fontSize) {
+	
+	private void applyBasicFormat(TableColumn tableColumn, double columnSize, int[] bgColorRGB, int[] fgColorRGB, boolean isBold, boolean isItalic,
+					String fontFamily, int... fontSize) {
 		tableColumn.setMinWidth(columnSize);
 		String bg = "", fg = "";
 		if (bgColorRGB != null) {
 			if (bgColorRGB[0] != 255 || bgColorRGB[1] != 255 || bgColorRGB[2] != 255) {
-
 				bg += "-fx-background-color:rgb(" + bgColorRGB[0] + "," + bgColorRGB[1] + "," + bgColorRGB[2] + ");";
 			}
 		}
@@ -225,23 +235,11 @@ public class TableViewManager<T> {
 			fg += "-fx-font-family:" + fontFamily + ";";
 		}
 
-		formatCell(tableColumn, fg, bg, isLink);
+		formatCells(tableColumn, fg, bg);
 	}
 
-	private void matcherFormatting(SpecialCase[] formatMatchers, Link isLink) {
-		if (formatMatchers != null) {
-			formatForMatchers(tableColumn, formatMatchers, isLink);
-		}
-	}
-
-	private void initColumnsOrderMap() {
-		for (TableColumnHelper column : listOfColumns) {
-			columnsOrderMap.put(column.getText(), listOfColumns.indexOf(column));
-		}
-	}
-
-	private void formatForMatchers(TableColumnHelper column, SpecialCase[] formatMatchers, Link isLink) {
-		column.setCellFactory(new Callback<TableColumn, TableCell>() {
+	private void formatCells(TableColumn tableColumn) {
+		tableColumn.setCellFactory(new Callback<TableColumn, TableCell>() {
 
 			@Override
 			public TableCell call(TableColumn param) {
@@ -249,87 +247,39 @@ public class TableViewManager<T> {
 
 					@Override
 					public void updateItem(Object item, boolean empty) {
-						if (item != null) {
-							AnchorPane pane = new AnchorPane();
-							pane.setMinHeight(USE_COMPUTED_SIZE);
-							pane.setMinWidth(USE_COMPUTED_SIZE);
-							pane.setPrefHeight(20);
-							pane.setPrefWidth(100);
-							VBox vb = new VBox();
-							if (isLink != null && !isLink.clazz().isAssignableFrom(Column.class)) {
-								Hyperlink link = new Hyperlink(item.toString());
-								link.setUnderline(true);
-								vb.getChildren().add(link);
-								link.setOnAction(new EventHandler<ActionEvent>() {
-									@Override
-									public void handle(ActionEvent event) {
-//										T en = (T)param.getTableView().getSelectionModel().getSelectedItem();
-//										String id = findAttrValueByMethod(en.getClass(), "getId");
-//										run(isLink.clazz(), isLink.method(), id);
-									}
-								});
-							} else {
-								Label label = new Label(item.toString());
-								vb.getChildren().add(label);
-							}
-							pane.getChildren().add(vb);
-							for (SpecialCase matcher : formatMatchers) {
-								if (matcher.value()[0].equals(item.toString())) {
-									pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + matcher.value()[1]);
-									break;
-								} else {
-									pane.setStyle(null);// important!!
+						super.updateItem(item, empty);
+						if (item != null || !empty) {
+							tableColumn.setMinWidth(columnSize);
+							String bg = "", fg = "";
+							if (bgColorRGB != null) {
+								if (bgColorRGB[0] != 255 || bgColorRGB[1] != 255 || bgColorRGB[2] != 255) {
+									bg += "-fx-background-color:rgb(" + bgColorRGB[0] + "," + bgColorRGB[1] + "," + bgColorRGB[2] + ");";
 								}
 							}
-							setGraphic(pane);
-						} else {
-							setText(null);
-							setGraphic(null);
-							setStyle(null);
-						}
-					}
-				};
-				return cell;
-			}
-		});
-	}
-
-	private void formatCell(TableColumnHelper column, String fg, String bg, Link isLink) {
-		column.setCellFactory(new Callback<TableColumn, TableCell>() {
-
-			@Override
-			public TableCell call(TableColumn param) {
-				TableCell cell = new TableCell() {
-
-					@Override
-					public void updateItem(Object item, boolean empty) {
-						if (item != null) {
+							if (fgColorRGB != null) {
+								if (fgColorRGB[0] != 255 || fgColorRGB[1] != 255 || fgColorRGB[2] != 255) {
+									fg += "-fx-text-fill:rgb(" + fgColorRGB[0] + "," + fgColorRGB[1] + "," + fgColorRGB[2] + ");";
+								}
+							}
+							if (isItalic) {
+								fg += "-fx-font-style:italic;";
+							}
+							if (isBold) {
+								fg += "-fx-font-weight:bold;";
+							}
+							fg += "-fx-font-size:" + fontSize + ";";
+							if (fontFamily != null && !fontFamily.isEmpty()) {
+								fg += "-fx-font-family:" + fontFamily + ";";
+							}
 							AnchorPane pane = new AnchorPane();
 							pane.setMinHeight(USE_COMPUTED_SIZE);
 							pane.setMinWidth(USE_COMPUTED_SIZE);
 							pane.setPrefHeight(20);
 							pane.setPrefWidth(100);
 							VBox vb = new VBox();
-
-							if (isLink != null && !isLink.clazz().isAssignableFrom(Column.class)) {
-								Hyperlink link = new Hyperlink(item.toString());
-								link.setUnderline(true);
-								link.setStyle(fg);
-								
-								link.setOnAction(new EventHandler<ActionEvent>() {
-									@Override
-									public void handle(ActionEvent event) {
-//										T en = (T)param.getTableView().getSelectionModel().getSelectedItem();
-//										String id = findAttrValueByMethod(en.getClass(), "getId");
-//										run(isLink.clazz(), isLink.method(), id);
-									}
-								});
-								vb.getChildren().add(link);
-							} else {
-								Label label = new Label(item.toString());
-								label.setStyle(fg);
-								vb.getChildren().add(label);
-							}
+							Label label = new Label(item.toString());
+							label.setStyle(fg);
+							vb.getChildren().add(label);
 							pane.getChildren().add(vb);
 							pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + bg);
 							setGraphic(pane);
@@ -344,35 +294,117 @@ public class TableViewManager<T> {
 		});
 	}
 
-	public String findAttrValueByMethod(Class clazz, String method) {
-		Object o = null;
-		try {
-			Object t = clazz.newInstance();
-			Method[] allMethods = clazz.getDeclaredMethods();
-			for (Method m : allMethods) {
-				String mname = m.getName();
-				if (!mname.startsWith(method) || (m.getGenericReturnType() != void.class)) {
-					continue;
-				}
-				m.setAccessible(true);
-				o = m.invoke(t);
-				return o.toString();
-			}
+	private void matcherFormatting(SpecialCase[] bgForGivenConditions,SpecialCase[] fgForGivenConditions) {
+		if (bgForGivenConditions != null || fgForGivenConditions != null) {
+			formatForGivenCondition(tableColumn, bgForGivenConditions, fgForGivenConditions);
 		}
-		catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | InstantiationException e) {
-			logger.log(Level.SEVERE, "Commit action could not be perform " + e.getMessage());
-		}
-		return null;
 	}
+
+	private void initColumnsOrderMap() {
+		for (TableColumn column : listOfColumns) {
+			columnsOrderMap.put(column.getText(), listOfColumns.indexOf(column));
+		}
+	}
+
+
+	private void formatForGivenCondition(TableColumn column, SpecialCase[] bgForGivenConditions, SpecialCase[] fgForGivenConditions) {
+		column.setCellFactory(new Callback<TableColumn, TableCell>() {
+
+			@Override
+			public TableCell call(TableColumn param) {
+				TableCell cell = new TableCell() {
+
+					@Override
+					public void updateItem(Object item, boolean empty) {
+						if (item != null) {
+							AnchorPane pane = new AnchorPane();
+							pane.setMinHeight(USE_COMPUTED_SIZE);
+							pane.setMinWidth(USE_COMPUTED_SIZE);
+							pane.setPrefHeight(20);
+							pane.setPrefWidth(100);
+							VBox vb = new VBox();
+							Label label = new Label(item.toString());
+							String fg = "";
+							for (SpecialCase matcher : fgForGivenConditions) {
+								if (matcher.value()[0].equals(item.toString())) {
+									fg += matcher.value()[1];
+									break;
+								} else {
+									label.setStyle(null);
+									pane.setStyle(null);// important!!
+								}
+							}
+							String bg = "";
+							for (SpecialCase matcher2 : bgForGivenConditions) {
+								if (matcher2.value()[0].equals(item.toString())) {
+									bg += matcher2.value()[1];
+									break;
+								} else {
+									pane.setStyle(null);// important!!
+								}
+							}
+							label.setStyle(fg);
+							vb.getChildren().add(label);
+							pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;"+bg);
+							pane.getChildren().add(vb);
+							setGraphic(pane);
+						} else {
+							setText(null);
+							setGraphic(null);
+							setStyle(null);
+						}
+					}
+				};
+				return cell;
+			}
+		});
+	}
+
+	private void formatCells(TableColumn column, String fg, String bg) {
+		column.setCellFactory(new Callback<TableColumn, TableCell>() {
+
+			@Override
+			public TableCell call(TableColumn param) {
+				TableCell cell = new TableCell() {
+
+					@Override
+					public void updateItem(Object item, boolean empty) {
+						if (item != null) {
+							AnchorPane pane = new AnchorPane();
+							pane.setMinHeight(USE_COMPUTED_SIZE);
+							pane.setMinWidth(USE_COMPUTED_SIZE);
+							pane.setPrefHeight(20);
+							pane.setPrefWidth(100);
+							VBox vb = new VBox();
+
+							Label label = new Label(item.toString());
+							label.setStyle(fg);
+							vb.getChildren().add(label);
+							pane.getChildren().add(vb);
+							pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + bg);
+							setGraphic(pane);
+						} else {
+							setText(null);
+							setGraphic(null);
+						}
+					}
+				};
+				return cell;
+			}
+		});
+	}
+
 
 	public void run(Class clazz, String method, String param) {
 
 		try {
 			Object t = clazz.newInstance();
-			Method[] allMethods = clazz.getDeclaredMethods();
 			Method m;
 			try {
 				m = clazz.getDeclaredMethod(method, String.class);
+				if (m == null)
+					return; // no such a method found
+				m.setAccessible(true);
 				m.invoke(t, param);
 			}
 			catch (NoSuchMethodException e) {
@@ -413,11 +445,12 @@ public class TableViewManager<T> {
 		for (Map.Entry<String, List<Field>> entry : map.entrySet()) {
 			String parentName = entry.getKey();
 			List<Field> childAttributs = entry.getValue();
-			TableColumnHelper parentCol = new TableColumnHelper(parentName);
+			TableColumn parentCol = new TableColumn(parentName);
 			int[] bgColorRGB = null;
 			int[] fgColorRGB = null;
 			String fontFamily = null;
-			SpecialCase[] formatMatchers = null;
+			SpecialCase[] bgForGivenConditions = null;
+			SpecialCase[] fgForGivenConditions = null;
 			boolean isBold = false;
 			boolean isItalic = false;
 			double columnSize = 100;
@@ -431,18 +464,19 @@ public class TableViewManager<T> {
 				fontFamily = colAnnotation.fontFamily();
 				fontSize = colAnnotation.fontSize();
 				columnSize = colAnnotation.columnSize();
-				formatMatchers = colAnnotation.formatMatchers();
+				bgForGivenConditions = colAnnotation.bgForGivenConditions();
 				isBold = colAnnotation.isBold();
-				isLink = colAnnotation.link();
+				// isLink = colAnnotation.link();
 				isItalic = colAnnotation.isItalic();
 				bgColorRGB = colAnnotation.bgColor();
-				formatMatchers = colAnnotation.formatMatchers();
+				bgForGivenConditions = colAnnotation.bgForGivenConditions();
+				fgForGivenConditions = colAnnotation.fgForGivenConditions();
 				String colName = childAttribut.getName();
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
 				tableColumn = createAndSetColumn(childAttribut, colName);
-				matcherFormatting(formatMatchers, isLink);
-				applyBasicFormat(columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, isLink);
+				matcherFormatting(bgForGivenConditions,fgForGivenConditions);
+				applyBasicFormat(tableColumn, columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily);
 				parentCol.getColumns().add(tableColumn);
 			}
 			listOfColumns.add(parentCol);
@@ -450,31 +484,31 @@ public class TableViewManager<T> {
 
 	}
 
-	private TableColumnHelper createAndSetColumn(Field att, String colName) {
-		tableColumn = new TableColumnHelper(colName);
+	private TableColumn createAndSetColumn(Field att, String colName) {
+		tableColumn = new TableColumn(colName);
 		// associate data to column using setCellValueFactory
 		if (att.getType().isAssignableFrom(String.class) || att.getType().isAssignableFrom(SimpleStringProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(att.getName()));
-			tableColumn.setConverterClazz(StringConverter.class);
+			// tableColumn.setConverterClazz(StringConverter.class);
 		} else if (att.getType().isAssignableFrom(Integer.class) || att.getType().isAssignableFrom(int.class)
 						|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(att.getName()));
-			tableColumn.setConverterClazz(IntegerStringConverter.class);
+			// tableColumn.setConverterClazz(IntegerStringConverter.class);
 		} else if (att.getType().isAssignableFrom(Long.class) || att.getType().isAssignableFrom(long.class)
 						|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Long>(att.getName()));
-			tableColumn.setConverterClazz(LongStringConverter.class);
+			// tableColumn.setConverterClazz(LongStringConverter.class);
 		} else if (att.getType().isAssignableFrom(Double.class) || att.getType().isAssignableFrom(double.class)
 						|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Double>(att.getName()));
-			tableColumn.setConverterClazz(DoubleStringConverter.class);
+			// tableColumn.setConverterClazz(DoubleStringConverter.class);
 		} else if (att.getType().isAssignableFrom(Date.class) || att.getType().isAssignableFrom(LocalDate.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(att.getName()));
-			tableColumn.setConverterClazz(DateStringConverter.class);
+			// tableColumn.setConverterClazz(DateStringConverter.class);
 		} else if (att.getType().isAssignableFrom(Float.class) || att.getType().isAssignableFrom(float.class)
 						|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(att.getName()));
-			tableColumn.setConverterClazz(FloatStringConverter.class);
+			// tableColumn.setConverterClazz(FloatStringConverter.class);
 		} else {
 			System.err.println(" Unzulässige Annotierung von Spalte " + att.getName()
 							+ ". Nur Spalte mit primitiv Datentyp dürfen hier annotiert werden");
@@ -528,7 +562,7 @@ public class TableViewManager<T> {
 	 * @param node
 	 * @param direction
 	 */
-	private void applyGraphic(TableColumnHelper column, Node node) {
+	private void applyGraphic(TableColumn column, Node node) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
 
 			@Override
@@ -569,7 +603,7 @@ public class TableViewManager<T> {
 	public void assignGraphicToColumn(Node node, String... columnsName) {
 		List<String> columnsnameList = Arrays.asList(columnsName);
 		int i = 0;
-		for (TableColumnHelper column : listOfColumns) {
+		for (TableColumn column : listOfColumns) {
 			if (columnsnameList.contains(column.getText())) {
 				applyGraphic(column, node);
 			}
@@ -599,7 +633,7 @@ public class TableViewManager<T> {
 	public void setCustomCellFactory(Node customControl, String... columnsName) {
 		List<String> columnsnameList = Arrays.asList(columnsName);
 		int i = 0;
-		for (TableColumnHelper column : listOfColumns) {
+		for (TableColumn column : listOfColumns) {
 			if (columnsnameList.contains(column.getText())) {
 				applyGraphic(column, customControl);
 			}
@@ -618,7 +652,7 @@ public class TableViewManager<T> {
 		List<String> toBeExcludedColumnNames = Arrays.asList(columnToBeExclude);
 		StringBuilder sb = new StringBuilder();
 		int index = 0;
-		for (TableColumnHelper tableColumnHelper : listOfColumns) {
+		for (TableColumn tableColumnHelper : listOfColumns) {
 			if (toBeExcludedColumnNames.contains(tableColumnHelper.getText())) {
 				excludedColumns.add(tableColumnHelper);
 				sb.append(tableColumnHelper.getText() + " ");
@@ -629,7 +663,7 @@ public class TableViewManager<T> {
 		this.tableView.getColumns().addAll(listOfColumns);
 	}
 
-	public void excludeColumn(TableColumnHelper column) {
+	public void excludeColumn(TableColumn column) {
 		excludedColumns.add(column);
 		listOfColumns.remove(column);
 		this.tableView.getColumns().clear();
@@ -638,8 +672,8 @@ public class TableViewManager<T> {
 
 	public void includeColumns(String... columnToBeInclude) {
 		List<String> toBeIncludedColumnNames = Arrays.asList(columnToBeInclude);
-		List<TableColumnHelper> helperList = new ArrayList<TableColumnHelper>();
-		for (TableColumnHelper tableColumnHelper : excludedColumns) {
+		List<TableColumn> helperList = new ArrayList<TableColumn>();
+		for (TableColumn tableColumnHelper : excludedColumns) {
 			if (toBeIncludedColumnNames.contains(tableColumnHelper.getText())) {
 				listOfColumns.add(tableColumnHelper);
 				helperList.add(tableColumnHelper);
@@ -703,7 +737,7 @@ public class TableViewManager<T> {
 		});
 	}
 
-	public void setTextFieldCellFactory(TableColumnHelper column) {
+	public void setTextFieldCellFactory(TableColumn column) {
 		column.setCellFactory(new Callback<TableColumn<T, String>, TableCell<T, String>>() {
 
 			String cellValue = "";
@@ -740,7 +774,7 @@ public class TableViewManager<T> {
 	 * @author ca.leumaleu
 	 */
 	public void performOnEditCommit(Class serviceClazz, String method) {
-		for (TableColumnHelper tableColumnHelper : listOfColumns) {
+		for (TableColumn tableColumnHelper : listOfColumns) {
 			tableColumnHelper.setCellFactory(TextFieldTableCell.forTableColumn());
 			tableColumnHelper.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
 
@@ -774,7 +808,7 @@ public class TableViewManager<T> {
 	}
 
 	public void onEditCommit(Class clazz, String method) {
-		for (TableColumnHelper tableColumnHelper : listOfColumns) {
+		for (TableColumn tableColumnHelper : listOfColumns) {
 			tableColumnHelper.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
 
 				@Override
@@ -857,6 +891,6 @@ public class TableViewManager<T> {
 
 	public TableView<T> getTableView() {
 		return tableView;
-		
+
 	}
 }

@@ -13,5 +13,5 @@ import java.lang.annotation.Target;
 @Target({ TYPE, FIELD, PARAMETER })
 public @interface Link {
 	public Class<?> clazz();
-	public String method(); 
+	public String url(); 
 }
