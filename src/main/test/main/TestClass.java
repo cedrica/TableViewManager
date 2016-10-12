@@ -11,7 +11,7 @@ public class TestClass extends Application{
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		URL location = new URL(getClass().getResource("/ui/Table.fxml").toExternalForm());
+		URL location = new URL(TestClass.class.getResource("/com/tableview/manager/Table.fxml").toExternalForm());
 		FXMLLoader table = new FXMLLoader(location);
 		table.load();
 		Scene scene = new Scene(table.getRoot());

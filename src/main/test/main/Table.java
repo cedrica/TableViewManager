@@ -21,12 +21,13 @@ public class Table implements Initializable{
 	public void initialize(URL location, ResourceBundle resources) {
 		List<TestObject> list = new ArrayList<>();
 		for(int i = 0; i < 5; i++){
-			list.add(new TestObject("name"+i, i, "homePage"+i));
+			list.add(new TestObject("name"+i,"Cedric"+i,"Christelle"+i, i, "homePage"+i));
 		}
 		items = FXCollections.observableArrayList(list);
 		TableViewManager<TestObject> tvm = new TableViewManager<TestObject>(table);
 		tvm.initColumnAndSetValueFactory(TestObject.class);
 		table.setItems(items);
+		table.setTableMenuButtonVisible(true);
 	}
 
 }

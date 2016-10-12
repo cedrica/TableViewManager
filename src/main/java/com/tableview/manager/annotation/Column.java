@@ -32,5 +32,4 @@ public @interface Column {
 	public SpecialCase[] formatMatchers() default {@SpecialCase(value={"",""})};
 	public SpecialCase[] bgForGivenConditions() default {@SpecialCase(value={"",""})};
 	public SpecialCase[] fgForGivenConditions() default {@SpecialCase(value={"",""})};
-//	public Link link() default @Link(clazz = Column.class, url = "");
 }

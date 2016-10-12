@@ -33,6 +33,7 @@ import com.tableview.manager.annotation.Link;
 import com.tableview.manager.annotation.SpecialCase;
 import com.tableview.manager.annotation.Transient;
 import com.tableview.manager.helper.TableColumnHelper;
+import com.tableview.manager.helper.UserData;
 
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -42,6 +43,7 @@ import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.css.CssMetaData;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
@@ -73,18 +75,10 @@ import javafx.util.converter.LongStringConverter;
 public class TableViewManager<T> {
 
 	private TableView			tableView;
-	private TableColumn			tableColumn;
 	private List<TableColumn>	listOfColumns;
 	private List<TableColumn>	excludedColumns;
 	private boolean				isUpdatable;
 	private static Logger		logger	= null;
-	private double				columnSize;
-	private int[]				bgColorRGB;
-	private int[]				fgColorRGB;
-	private boolean				isBold;
-	private boolean				isItalic;
-	private String				fontFamily;
-	private int					fontSize;
 	HashMap<String, Integer>	columnsOrderMap;
 
 	public TableViewManager(TableView tableView) {
@@ -155,16 +149,15 @@ public class TableViewManager<T> {
 			if (transientAnnotation != null) {
 				continue;
 			}
-			bgColorRGB = null;
-			fgColorRGB = null;
-			fontFamily = null;
+			double columnSize = 1;
+			int[] bgColorRGB = null;
+			int[] fgColorRGB = null;
+			boolean isBold = false;
+			boolean isItalic = false;
+			String fontFamily = null;
+			int fontSize = 15;
 			SpecialCase[] bgForGivenConditions = null;
 			SpecialCase[] fgForGivenConditions = null;
-			isBold = false;
-			isItalic = false;
-			columnSize = 1;
-			fontSize = 15;
-			// Link isLink = null;
 			if (colAnnotation != null) {
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
@@ -178,15 +171,21 @@ public class TableViewManager<T> {
 				String parentName = colAnnotation.parent();
 				isBold = colAnnotation.isBold();
 				isItalic = colAnnotation.isItalic();
-				// isLink = colAnnotation.link();
 				if (parentName.trim().length() > 0) {
 					childAttributs.add(att);
 					mapParentNameAttribut.put(parentName, childAttributs);
 					continue;
 				}
 			}
-			tableColumn = createAndSetColumn(att, colName);
-			matcherFormatting(bgForGivenConditions,fgForGivenConditions);
+			boolean conditionalOrBasic = false;
+			TableColumn tableColumn = createAndSetColumn(att, colName);
+			if((bgForGivenConditions != null || bgForGivenConditions != null) 
+							&& (!bgForGivenConditions[0].value()[1].trim().equals("") || !fgForGivenConditions[0].value()[1].trim().equals(""))){
+				formatForGivenCondition(tableColumn, bgForGivenConditions, fgForGivenConditions);
+			}else{
+				tableColumn.setUserData(new UserData(columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize));
+				formatCells(tableColumn);
+			}
 			listOfColumns.add(tableColumn);
 		}
 		if (childAttributs.size() == 1) {
@@ -194,7 +193,7 @@ public class TableViewManager<T> {
 			// alert.setHeaderText("Annotation Error");
 			// alert.setContentText("Für Spalteverschachteltung muss mindestens 2 Kinder das gleiche parent haben");
 			// alert.show();
-			System.out.println("Für Spalteverschachteltung muss mindestens 2 Kinder das gleiche parent haben");
+			System.err.println("Für Spalteverschachteltung muss mindestens 2 Kinder das gleiche parent haben");
 			return;
 		}
 		mergeColumns(mapParentNameAttribut);
@@ -205,99 +204,34 @@ public class TableViewManager<T> {
 		initColumnsOrderMap();
 	}
 
-	
-	private void applyBasicFormat(TableColumn tableColumn, double columnSize, int[] bgColorRGB, int[] fgColorRGB, boolean isBold, boolean isItalic,
-					String fontFamily, int... fontSize) {
-		tableColumn.setMinWidth(columnSize);
-		String bg = "", fg = "";
-		if (bgColorRGB != null) {
-			if (bgColorRGB[0] != 255 || bgColorRGB[1] != 255 || bgColorRGB[2] != 255) {
-				bg += "-fx-background-color:rgb(" + bgColorRGB[0] + "," + bgColorRGB[1] + "," + bgColorRGB[2] + ");";
-			}
-		}
-		if (fgColorRGB != null) {
-			if (fgColorRGB[0] != 255 || fgColorRGB[1] != 255 || fgColorRGB[2] != 255) {
-				fg += "-fx-text-fill:rgb(" + fgColorRGB[0] + "," + fgColorRGB[1] + "," + fgColorRGB[2] + ");";
-			}
-		}
-		if (isItalic) {
-			fg += "-fx-font-style:italic;";
-		}
-		if (isBold) {
-			fg += "-fx-font-weight:bold;";
-		}
-
-		if (fontSize.length > 0) {
-			fg += "-fx-font-size:" + fontSize[0] + ";";
-		}
-
-		if (fontFamily != null && !fontFamily.isEmpty()) {
-			fg += "-fx-font-family:" + fontFamily + ";";
-		}
-
-		formatCells(tableColumn, fg, bg);
-	}
-
-	private void formatCells(TableColumn tableColumn) {
-		tableColumn.setCellFactory(new Callback<TableColumn, TableCell>() {
-
-			@Override
-			public TableCell call(TableColumn param) {
-				TableCell cell = new TableCell() {
-
-					@Override
-					public void updateItem(Object item, boolean empty) {
-						super.updateItem(item, empty);
-						if (item != null || !empty) {
-							tableColumn.setMinWidth(columnSize);
-							String bg = "", fg = "";
-							if (bgColorRGB != null) {
-								if (bgColorRGB[0] != 255 || bgColorRGB[1] != 255 || bgColorRGB[2] != 255) {
-									bg += "-fx-background-color:rgb(" + bgColorRGB[0] + "," + bgColorRGB[1] + "," + bgColorRGB[2] + ");";
-								}
-							}
-							if (fgColorRGB != null) {
-								if (fgColorRGB[0] != 255 || fgColorRGB[1] != 255 || fgColorRGB[2] != 255) {
-									fg += "-fx-text-fill:rgb(" + fgColorRGB[0] + "," + fgColorRGB[1] + "," + fgColorRGB[2] + ");";
-								}
-							}
-							if (isItalic) {
-								fg += "-fx-font-style:italic;";
-							}
-							if (isBold) {
-								fg += "-fx-font-weight:bold;";
-							}
-							fg += "-fx-font-size:" + fontSize + ";";
-							if (fontFamily != null && !fontFamily.isEmpty()) {
-								fg += "-fx-font-family:" + fontFamily + ";";
-							}
-							AnchorPane pane = new AnchorPane();
-							pane.setMinHeight(USE_COMPUTED_SIZE);
-							pane.setMinWidth(USE_COMPUTED_SIZE);
-							pane.setPrefHeight(20);
-							pane.setPrefWidth(100);
-							VBox vb = new VBox();
-							Label label = new Label(item.toString());
-							label.setStyle(fg);
-							vb.getChildren().add(label);
-							pane.getChildren().add(vb);
-							pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + bg);
-							setGraphic(pane);
-						} else {
-							setText(null);
-							setGraphic(null);
-						}
+	private void formatCells(TableColumn tableColumn){
+		tableColumn.setCellFactory(column -> {
+			return new TableCell() {
+				@Override
+				public void updateItem(Object item, boolean empty) {
+					super.updateItem(item, empty);
+					if (item != null || !empty) {
+						UserData userData = (UserData) tableColumn.getUserData();
+						tableColumn.setMinWidth(userData.getColumnSize());
+						AnchorPane pane = new AnchorPane();
+						pane.setMinHeight(USE_COMPUTED_SIZE);
+						pane.setMinWidth(USE_COMPUTED_SIZE);
+						pane.setPrefHeight(20);
+						pane.setPrefWidth(100);
+						VBox vb = new VBox();
+						Label label = new Label(item.toString());
+						label.setStyle(userData.getForeGround());
+						vb.getChildren().add(label);
+						pane.getChildren().add(vb);
+						pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + userData.getBackGround());
+						setGraphic(pane);
+					} else {
+						setText(null);
+						setGraphic(null);
 					}
-				};
-				return cell;
-			}
+				}
+			};
 		});
-	}
-
-	private void matcherFormatting(SpecialCase[] bgForGivenConditions,SpecialCase[] fgForGivenConditions) {
-		if (bgForGivenConditions != null || fgForGivenConditions != null) {
-			formatForGivenCondition(tableColumn, bgForGivenConditions, fgForGivenConditions);
-		}
 	}
 
 	private void initColumnsOrderMap() {
@@ -345,7 +279,7 @@ public class TableViewManager<T> {
 							}
 							label.setStyle(fg);
 							vb.getChildren().add(label);
-							pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;"+bg);
+							pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + bg);
 							pane.getChildren().add(vb);
 							setGraphic(pane);
 						} else {
@@ -360,39 +294,6 @@ public class TableViewManager<T> {
 		});
 	}
 
-	private void formatCells(TableColumn column, String fg, String bg) {
-		column.setCellFactory(new Callback<TableColumn, TableCell>() {
-
-			@Override
-			public TableCell call(TableColumn param) {
-				TableCell cell = new TableCell() {
-
-					@Override
-					public void updateItem(Object item, boolean empty) {
-						if (item != null) {
-							AnchorPane pane = new AnchorPane();
-							pane.setMinHeight(USE_COMPUTED_SIZE);
-							pane.setMinWidth(USE_COMPUTED_SIZE);
-							pane.setPrefHeight(20);
-							pane.setPrefWidth(100);
-							VBox vb = new VBox();
-
-							Label label = new Label(item.toString());
-							label.setStyle(fg);
-							vb.getChildren().add(label);
-							pane.getChildren().add(vb);
-							pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + bg);
-							setGraphic(pane);
-						} else {
-							setText(null);
-							setGraphic(null);
-						}
-					}
-				};
-				return cell;
-			}
-		});
-	}
 
 
 	public void run(Class clazz, String method, String param) {
@@ -474,9 +375,14 @@ public class TableViewManager<T> {
 				String colName = childAttribut.getName();
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
-				tableColumn = createAndSetColumn(childAttribut, colName);
-				matcherFormatting(bgForGivenConditions,fgForGivenConditions);
-				applyBasicFormat(tableColumn, columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily);
+				TableColumn tableColumn = createAndSetColumn(childAttribut, colName);
+				if((bgForGivenConditions != null || bgForGivenConditions != null) 
+								&& (!bgForGivenConditions[0].value()[1].trim().equals("") || !fgForGivenConditions[0].value()[1].trim().equals(""))){
+					formatForGivenCondition(tableColumn, bgForGivenConditions, fgForGivenConditions);
+				}else{
+					tableColumn.setUserData(new UserData(columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize));
+					formatCells(tableColumn);
+				}
 				parentCol.getColumns().add(tableColumn);
 			}
 			listOfColumns.add(parentCol);
@@ -485,7 +391,7 @@ public class TableViewManager<T> {
 	}
 
 	private TableColumn createAndSetColumn(Field att, String colName) {
-		tableColumn = new TableColumn(colName);
+		TableColumn  tableColumn = new TableColumn(colName);
 		// associate data to column using setCellValueFactory
 		if (att.getType().isAssignableFrom(String.class) || att.getType().isAssignableFrom(SimpleStringProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(att.getName()));
@@ -521,37 +427,7 @@ public class TableViewManager<T> {
 		return tableColumn;
 	}
 
-	private void setCellBgColor(TableColumn column, int r, int g, int b) {
-		column.setCellFactory(new Callback<TableColumn, TableCell>() {
-
-			@Override
-			public TableCell call(TableColumn param) {
-				TableCell cell = new TableCell() {
-
-					@Override
-					public void updateItem(Object item, boolean empty) {
-						if (item != null) {
-							AnchorPane pane = new AnchorPane();
-							pane.setStyle("-fx-background-color:rgb(" + r + "," + g + "," + b + ");");
-							pane.setMinHeight(USE_COMPUTED_SIZE);
-							pane.setMinWidth(USE_COMPUTED_SIZE);
-							pane.setPrefHeight(20);
-							pane.setPrefWidth(100);
-							VBox vb = new VBox();
-							vb.getChildren().add(new Label(item.toString()));
-							pane.getChildren().add(vb);
-							setGraphic(pane);
-							setText(null);
-						} else {
-							setText(null);
-							setGraphic(null);
-						}
-					}
-				};
-				return cell;
-			}
-		});
-	}
+	
 
 
 	/**
