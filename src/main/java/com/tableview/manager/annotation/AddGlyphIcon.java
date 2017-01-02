@@ -16,4 +16,9 @@ import org.controlsfx.glyphfont.FontAwesome.Glyph;
 public @interface AddGlyphIcon {
 	public FontAwesome.Glyph iconName() default Glyph.TENCENT_WEIBO; 
 	public boolean beforeText() default false;
+	/**
+	 * since we are obliged to assign a default icon name, we setted it to Glyph.TENCENT_WEIBO. But this will be displayed just by user request 
+	 * @return
+	 */
+	public boolean showDefaultIcon() default false;
 }

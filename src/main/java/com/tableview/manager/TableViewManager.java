@@ -52,6 +52,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableCell;
@@ -185,8 +187,8 @@ public class TableViewManager<T> {
 			}
 			TableColumn tableColumn = createAndSetColumn(att, colName);
 			tableColumn.setMinWidth(columnSize);
-			tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber, bgForGivenConditions,
-													fgForGivenConditions));
+			tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,
+													bgForGivenConditions, fgForGivenConditions));
 			formatForGivenCondition(tableColumn);
 			listOfColumns.add(tableColumn);
 		}
@@ -227,14 +229,14 @@ public class TableViewManager<T> {
 							Condition[] bgForGivenConditions = userData.getBgForGivenConditions();
 							Condition[] fgForGivenConditions = userData.getFgForGivenConditions();
 							boolean isEuroNumber = userData.isEuroNumber();
-							if(isEuroNumber){
+							if (isEuroNumber) {
 								String itemStr = NumberFormat.getNumberInstance(Locale.GERMANY).format(item);
 								label = new Label(itemStr);
 							}
 							if ((bgForGivenConditions != null) && (!bgForGivenConditions[0].ifFieldValueIsEqualTo().trim().equals(""))) {
 								for (Condition matcher2 : bgForGivenConditions) {
 									if (matcher2.ifFieldValueIsEqualTo().equals(item.toString())) {
-										bg += "-fx-background-color:"+matcher2.thenSetBackgroundColorTo()+";";
+										bg += "-fx-background-color:" + matcher2.thenSetBackgroundColorTo() + ";";
 										break;
 									} else {
 										hb.setStyle(null);// important!!
@@ -247,7 +249,7 @@ public class TableViewManager<T> {
 							if ((fgForGivenConditions != null) && (!fgForGivenConditions[0].ifFieldValueIsEqualTo().trim().equals(""))) {
 								for (Condition matcher : fgForGivenConditions) {
 									if (matcher.ifFieldValueIsEqualTo().equals(item.toString())) {
-										fg += "-fx-text-fill:"+matcher.thenSetBackgroundColorTo()+";";
+										fg += "-fx-text-fill:" + matcher.thenSetBackgroundColorTo() + ";";
 										break;
 									} else {
 										label.setStyle(null);
@@ -258,17 +260,30 @@ public class TableViewManager<T> {
 								fg += userData.getForeGround();
 							}
 
-							
+
 							AddGlyphIcon addGlyphIcon = userData.getIcon();
-							if(addGlyphIcon != null){
-								Label icon = new Label();
-								icon.setGraphic(GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName()));
-								if(addGlyphIcon.beforeText()){
-									hb.getChildren().add(icon);
+							Label icon = new Label();
+							if (addGlyphIcon != null) {
+								if (addGlyphIcon.iconName().equals(Glyph.TENCENT_WEIBO) && addGlyphIcon.showDefaultIcon()) {
+									icon.setGraphic(GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName()));
+									if (addGlyphIcon.beforeText()) {
+										hb.getChildren().add(icon);
+										hb.getChildren().add(label);
+									} else {
+										hb.getChildren().add(label);
+										hb.getChildren().add(icon);
+									}
+								} else if (addGlyphIcon.iconName().equals(Glyph.TENCENT_WEIBO) && !addGlyphIcon.showDefaultIcon()) {
 									hb.getChildren().add(label);
-								}else{
-									hb.getChildren().add(label);
-									hb.getChildren().add(icon);
+								} else {
+									icon.setGraphic(GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName()));
+									if (addGlyphIcon.beforeText()) {
+										hb.getChildren().add(icon);
+										hb.getChildren().add(label);
+									} else {
+										hb.getChildren().add(label);
+										hb.getChildren().add(icon);
+									}
 								}
 							}
 							label.setStyle(fg);
@@ -371,8 +386,8 @@ public class TableViewManager<T> {
 				glyphIcon = colAnnotation.addGlyphIcon();
 				TableColumn tableColumn = createAndSetColumn(childAttribut, colName);
 				tableColumn.setMinWidth(columnSize);
-				tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,bgForGivenConditions,
-														fgForGivenConditions));
+				tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,
+														bgForGivenConditions, fgForGivenConditions));
 				formatForGivenCondition(tableColumn);
 				parentCol.getColumns().add(tableColumn);
 			}
@@ -676,6 +691,7 @@ public class TableViewManager<T> {
 		for (TableColumn column : listOfColumns) {
 			column.setCellFactory(TextFieldTableCell.forTableColumn());
 			column.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
+
 				@Override
 				public void handle(CellEditEvent event) {
 					Object o = null;
