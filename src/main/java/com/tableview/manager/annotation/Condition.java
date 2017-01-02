@@ -6,7 +6,11 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-
+/**
+ * To set background color depending on the declared condition
+ * @author ca.leumaleu
+ *
+ */
 
 @Target({ ElementType.FIELD })
 @Retention(RUNTIME)

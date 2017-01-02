@@ -39,6 +39,7 @@ import com.tableview.manager.annotation.Column;
 import com.tableview.manager.annotation.Condition;
 import com.tableview.manager.annotation.SpecialCase;
 import com.tableview.manager.annotation.Transient;
+import com.tableview.manager.helper.Helper;
 import com.tableview.manager.helper.TableColumnHelper;
 import com.tableview.manager.helper.UserData;
 
@@ -233,59 +234,10 @@ public class TableViewManager<T> {
 								String itemStr = NumberFormat.getNumberInstance(Locale.GERMANY).format(item);
 								label = new Label(itemStr);
 							}
-							if ((bgForGivenConditions != null) && (!bgForGivenConditions[0].ifFieldValueIsEqualTo().trim().equals(""))) {
-								for (Condition matcher2 : bgForGivenConditions) {
-									if (matcher2.ifFieldValueIsEqualTo().equals(item.toString())) {
-										bg += "-fx-background-color:" + matcher2.thenSetBackgroundColorTo() + ";";
-										break;
-									} else {
-										hb.setStyle(null);// important!!
-									}
-								}
-							} else {
-								bg = userData.getBackGround();
-							}
-
-							if ((fgForGivenConditions != null) && (!fgForGivenConditions[0].ifFieldValueIsEqualTo().trim().equals(""))) {
-								for (Condition matcher : fgForGivenConditions) {
-									if (matcher.ifFieldValueIsEqualTo().equals(item.toString())) {
-										fg += "-fx-text-fill:" + matcher.thenSetBackgroundColorTo() + ";";
-										break;
-									} else {
-										label.setStyle(null);
-										hb.setStyle(null);// important!!
-									}
-								}
-							} else {
-								fg += userData.getForeGround();
-							}
-
-
+							bg = Helper.generateBgFont(item, hb, bg, userData, bgForGivenConditions);
+							fg = Helper.generateFgFont(item, hb, fg, userData, fgForGivenConditions);
 							AddGlyphIcon addGlyphIcon = userData.getIcon();
-							Label icon = new Label();
-							if (addGlyphIcon != null) {
-								if (addGlyphIcon.iconName().equals(Glyph.TENCENT_WEIBO) && addGlyphIcon.showDefaultIcon()) {
-									icon.setGraphic(GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName()));
-									if (addGlyphIcon.beforeText()) {
-										hb.getChildren().add(icon);
-										hb.getChildren().add(label);
-									} else {
-										hb.getChildren().add(label);
-										hb.getChildren().add(icon);
-									}
-								} else if (addGlyphIcon.iconName().equals(Glyph.TENCENT_WEIBO) && !addGlyphIcon.showDefaultIcon()) {
-									hb.getChildren().add(label);
-								} else {
-									icon.setGraphic(GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName()));
-									if (addGlyphIcon.beforeText()) {
-										hb.getChildren().add(icon);
-										hb.getChildren().add(label);
-									} else {
-										hb.getChildren().add(label);
-										hb.getChildren().add(icon);
-									}
-								}
-							}
+							hb = Helper.assignGlyphIcon(hb, label, addGlyphIcon);
 							label.setStyle(fg);
 							hb.setSpacing(5);
 							hb.setStyle(bg);
@@ -303,8 +255,8 @@ public class TableViewManager<T> {
 	}
 
 
-	public void run(Class clazz, String method, String param) {
 
+	public void run(Class clazz, String method, String param) {
 		try {
 			Object t = clazz.newInstance();
 			Method m;
@@ -348,6 +300,10 @@ public class TableViewManager<T> {
 		});
 	}
 
+	/**
+	 * assign column children to they corresponding parent
+	 * @param map: key is the parent name and values children´s one
+	 */
 	private void mergeColumns(HashMap<String, List<Field>> map) {
 
 		for (Map.Entry<String, List<Field>> entry : map.entrySet()) {
@@ -386,7 +342,7 @@ public class TableViewManager<T> {
 				glyphIcon = colAnnotation.addGlyphIcon();
 				TableColumn tableColumn = createAndSetColumn(childAttribut, colName);
 				tableColumn.setMinWidth(columnSize);
-				tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,
+				tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,
 														bgForGivenConditions, fgForGivenConditions));
 				formatForGivenCondition(tableColumn);
 				parentCol.getColumns().add(tableColumn);
@@ -424,10 +380,6 @@ public class TableViewManager<T> {
 		} else {
 			System.err.println(" Unzulässige Annotierung von Spalte " + att.getName()
 							+ ". Nur Spalte mit primitiv Datentyp dürfen hier annotiert werden");
-			// Alert alert = new Alert(AlertType.ERROR);
-			// alert.setHeaderText("Programmiere Fehler");
-			// alert.setContentText("Sorry technische Fehler. Wir melden uns sobald das Problem gelöst wird ;)");
-			// alert.show();
 			System.exit(1);
 		}
 		return tableColumn;
@@ -435,8 +387,7 @@ public class TableViewManager<T> {
 
 
 	/**
-	 * to assign a graphic component to a cell. value displayed before the
-	 * graphic component is the existing value in the cell.
+	 * to assign a custom node to the cells of a given column.
 	 *
 	 * @param column
 	 * @param node
@@ -523,8 +474,8 @@ public class TableViewManager<T> {
 	}
 
 	/**
-	 * hide the given columns. Muss be call before the
-	 * assignCellFactoryToSpecificColumn function.
+	 * hide columns by name. Must be call before the
+	 * cellFactory is setted.
 	 *
 	 * @param columnToBeExclude
 	 */
@@ -543,13 +494,20 @@ public class TableViewManager<T> {
 		this.tableView.getColumns().addAll(listOfColumns);
 	}
 
+	/**
+	 * hide column
+	 * @param column
+	 */
 	public void excludeColumn(TableColumn column) {
 		excludedColumns.add(column);
 		listOfColumns.remove(column);
 		this.tableView.getColumns().clear();
 		this.tableView.getColumns().addAll(listOfColumns);
 	}
-
+	/**
+	 * show columns by name
+	 * @param columnToBeInclude
+	 */
 	public void includeColumns(String... columnToBeInclude) {
 		List<String> toBeIncludedColumnNames = Arrays.asList(columnToBeInclude);
 		List<TableColumn> helperList = new ArrayList<TableColumn>();
@@ -563,7 +521,10 @@ public class TableViewManager<T> {
 		this.tableView.getColumns().clear();
 		this.tableView.getColumns().addAll(listOfColumns);
 	}
-
+	/**
+	 * show column column
+	 * @param column
+	 */
 	public void includeColumn(TableColumnHelper column) {
 		excludedColumns.remove(column);
 		listOfColumns.add(column);
@@ -748,16 +709,6 @@ public class TableViewManager<T> {
 		tableView.getSelectionModel().setCellSelectionEnabled(b);
 	}
 
-	public void hideTableHeader(TableView<T> table) {
-		// Don't show header
-		Pane header = (Pane) table.lookup("TableHeaderRow");
-		if (header.isVisible()) {
-			header.setMaxHeight(0);
-			header.setMinHeight(0);
-			header.setPrefHeight(0);
-			header.setVisible(false);
-		}
-	}
 
 	public void hideTableHeader() {
 		// Don't show header
