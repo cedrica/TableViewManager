@@ -1,6 +1,4 @@
-package main;
-
-import java.net.URL;
+package com.tableview.manager;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -11,8 +9,7 @@ public class TestClass extends Application{
 
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		URL location = new URL(TestClass.class.getResource("/com/tableview/manager/Table.fxml").toExternalForm());
-		FXMLLoader table = new FXMLLoader(location);
+		FXMLLoader table = new FXMLLoader(TestClass.class.getResource("/com/tableview/manager/Table.fxml"));
 		table.load();
 		Scene scene = new Scene(table.getRoot());
 		primaryStage.setScene(scene);

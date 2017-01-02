@@ -1,4 +1,4 @@
-package main;
+package com.tableview.manager;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -13,10 +13,11 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 
-public class Table implements Initializable{
+public class TableScreen implements Initializable{
 
 	@FXML TableView<TestObject> table;
 	private ObservableList<TestObject> items;
+	
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 		List<TestObject> list = new ArrayList<>();
@@ -28,6 +29,12 @@ public class Table implements Initializable{
 		tvm.initColumnAndSetValueFactory(TestObject.class);
 		table.setItems(items);
 		table.setTableMenuButtonVisible(true);
+//		table.setEditable(true);
+//		tvm.onEditCommit(Table.class, "print");
+	}
+	
+	public void print(){
+		System.out.println("gut!");
 	}
 
 }

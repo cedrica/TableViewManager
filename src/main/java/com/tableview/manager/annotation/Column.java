@@ -6,6 +6,9 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+import org.controlsfx.glyphfont.FontAwesome;
+import org.controlsfx.glyphfont.FontAwesome.Glyph;
+
 
 @Target({ ElementType.FIELD })
 @Retention(RUNTIME)
@@ -27,9 +30,22 @@ public @interface Column {
 
 	public boolean isItalic() default false;
 	
+	public boolean isEuroNumber() default false;
+	
+	public AddGlyphIcon addGlyphIcon() default @AddGlyphIcon(iconName=Glyph.TENCENT_WEIBO, beforeText=false);
+	/**
+	 * has been replace by self annotation addGlyphIcon
+	 * @return
+	 */
+	@Deprecated
+	public FontAwesome.Glyph glyphIcon() default Glyph.TENCENT_WEIBO; 
 	public int columnSize() default 100;
+	/**
+	 * this method has been replaced by bgForGivenConditions
+	 * 
+	 */
 	@Deprecated
 	public SpecialCase[] formatMatchers() default {@SpecialCase(value={"",""})};
-	public SpecialCase[] bgForGivenConditions() default {@SpecialCase(value={"",""})};
-	public SpecialCase[] fgForGivenConditions() default {@SpecialCase(value={"",""})};
+	public Condition[] bgForGivenConditions() default {@Condition()};
+	public Condition[] fgForGivenConditions() default {@Condition()};
 }

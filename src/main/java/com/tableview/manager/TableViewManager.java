@@ -18,18 +18,25 @@ package com.tableview.manager;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.controlsfx.glyphfont.FontAwesome;
+import org.controlsfx.glyphfont.FontAwesome.Glyph;
+import org.controlsfx.glyphfont.GlyphFontRegistry;
+
+import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Column;
-import com.tableview.manager.annotation.Link;
+import com.tableview.manager.annotation.Condition;
 import com.tableview.manager.annotation.SpecialCase;
 import com.tableview.manager.annotation.Transient;
 import com.tableview.manager.helper.TableColumnHelper;
@@ -43,13 +50,8 @@ import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.css.CssMetaData;
-import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableCell;
@@ -60,9 +62,8 @@ import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import javafx.util.converter.DateStringConverter;
@@ -154,10 +155,12 @@ public class TableViewManager<T> {
 			int[] fgColorRGB = null;
 			boolean isBold = false;
 			boolean isItalic = false;
+			boolean isEuroNumber = false;
 			String fontFamily = null;
 			int fontSize = 15;
-			SpecialCase[] bgForGivenConditions = null;
-			SpecialCase[] fgForGivenConditions = null;
+			Condition[] bgForGivenConditions = null;
+			Condition[] fgForGivenConditions = null;
+			AddGlyphIcon glyphIcon = null;
 			if (colAnnotation != null) {
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
@@ -171,28 +174,23 @@ public class TableViewManager<T> {
 				String parentName = colAnnotation.parent();
 				isBold = colAnnotation.isBold();
 				isItalic = colAnnotation.isItalic();
+				isEuroNumber = colAnnotation.isEuroNumber();
+				glyphIcon = colAnnotation.addGlyphIcon();
 				if (parentName.trim().length() > 0) {
 					childAttributs.add(att);
 					mapParentNameAttribut.put(parentName, childAttributs);
 					continue;
 				}
+
 			}
-			boolean conditionalOrBasic = false;
 			TableColumn tableColumn = createAndSetColumn(att, colName);
-			if((bgForGivenConditions != null || bgForGivenConditions != null) 
-							&& (!bgForGivenConditions[0].value()[1].trim().equals("") || !fgForGivenConditions[0].value()[1].trim().equals(""))){
-				formatForGivenCondition(tableColumn, bgForGivenConditions, fgForGivenConditions);
-			}else{
-				tableColumn.setUserData(new UserData(columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize));
-				formatCells(tableColumn);
-			}
+			tableColumn.setMinWidth(columnSize);
+			tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber, bgForGivenConditions,
+													fgForGivenConditions));
+			formatForGivenCondition(tableColumn);
 			listOfColumns.add(tableColumn);
 		}
 		if (childAttributs.size() == 1) {
-			// Alert alert = new Alert(AlertType.ERROR);
-			// alert.setHeaderText("Annotation Error");
-			// alert.setContentText("Für Spalteverschachteltung muss mindestens 2 Kinder das gleiche parent haben");
-			// alert.show();
 			System.err.println("Für Spalteverschachteltung muss mindestens 2 Kinder das gleiche parent haben");
 			return;
 		}
@@ -204,35 +202,6 @@ public class TableViewManager<T> {
 		initColumnsOrderMap();
 	}
 
-	private void formatCells(TableColumn tableColumn){
-		tableColumn.setCellFactory(column -> {
-			return new TableCell() {
-				@Override
-				public void updateItem(Object item, boolean empty) {
-					super.updateItem(item, empty);
-					if (item != null || !empty) {
-						UserData userData = (UserData) tableColumn.getUserData();
-						tableColumn.setMinWidth(userData.getColumnSize());
-						AnchorPane pane = new AnchorPane();
-						pane.setMinHeight(USE_COMPUTED_SIZE);
-						pane.setMinWidth(USE_COMPUTED_SIZE);
-						pane.setPrefHeight(20);
-						pane.setPrefWidth(100);
-						VBox vb = new VBox();
-						Label label = new Label(item.toString());
-						label.setStyle(userData.getForeGround());
-						vb.getChildren().add(label);
-						pane.getChildren().add(vb);
-						pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + userData.getBackGround());
-						setGraphic(pane);
-					} else {
-						setText(null);
-						setGraphic(null);
-					}
-				}
-			};
-		});
-	}
 
 	private void initColumnsOrderMap() {
 		for (TableColumn column : listOfColumns) {
@@ -241,7 +210,7 @@ public class TableViewManager<T> {
 	}
 
 
-	private void formatForGivenCondition(TableColumn column, SpecialCase[] bgForGivenConditions, SpecialCase[] fgForGivenConditions) {
+	private void formatForGivenCondition(TableColumn column) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
 
 			@Override
@@ -251,37 +220,61 @@ public class TableViewManager<T> {
 					@Override
 					public void updateItem(Object item, boolean empty) {
 						if (item != null) {
-							AnchorPane pane = new AnchorPane();
-							pane.setMinHeight(USE_COMPUTED_SIZE);
-							pane.setMinWidth(USE_COMPUTED_SIZE);
-							pane.setPrefHeight(20);
-							pane.setPrefWidth(100);
-							VBox vb = new VBox();
+							HBox hb = new HBox();
 							Label label = new Label(item.toString());
-							String fg = "";
-							for (SpecialCase matcher : fgForGivenConditions) {
-								if (matcher.value()[0].equals(item.toString())) {
-									fg += matcher.value()[1];
-									break;
-								} else {
-									label.setStyle(null);
-									pane.setStyle(null);// important!!
-								}
+							String fg = "", bg = "";
+							UserData userData = (UserData) column.getUserData();
+							Condition[] bgForGivenConditions = userData.getBgForGivenConditions();
+							Condition[] fgForGivenConditions = userData.getFgForGivenConditions();
+							boolean isEuroNumber = userData.isEuroNumber();
+							if(isEuroNumber){
+								String itemStr = NumberFormat.getNumberInstance(Locale.GERMANY).format(item);
+								label = new Label(itemStr);
 							}
-							String bg = "";
-							for (SpecialCase matcher2 : bgForGivenConditions) {
-								if (matcher2.value()[0].equals(item.toString())) {
-									bg += matcher2.value()[1];
-									break;
-								} else {
-									pane.setStyle(null);// important!!
+							if ((bgForGivenConditions != null) && (!bgForGivenConditions[0].ifFieldValueIsEqualTo().trim().equals(""))) {
+								for (Condition matcher2 : bgForGivenConditions) {
+									if (matcher2.ifFieldValueIsEqualTo().equals(item.toString())) {
+										bg += "-fx-background-color:"+matcher2.thenSetBackgroundColorTo()+";";
+										break;
+									} else {
+										hb.setStyle(null);// important!!
+									}
+								}
+							} else {
+								bg = userData.getBackGround();
+							}
+
+							if ((fgForGivenConditions != null) && (!fgForGivenConditions[0].ifFieldValueIsEqualTo().trim().equals(""))) {
+								for (Condition matcher : fgForGivenConditions) {
+									if (matcher.ifFieldValueIsEqualTo().equals(item.toString())) {
+										fg += "-fx-text-fill:"+matcher.thenSetBackgroundColorTo()+";";
+										break;
+									} else {
+										label.setStyle(null);
+										hb.setStyle(null);// important!!
+									}
+								}
+							} else {
+								fg += userData.getForeGround();
+							}
+
+							
+							AddGlyphIcon addGlyphIcon = userData.getIcon();
+							if(addGlyphIcon != null){
+								Label icon = new Label();
+								icon.setGraphic(GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName()));
+								if(addGlyphIcon.beforeText()){
+									hb.getChildren().add(icon);
+									hb.getChildren().add(label);
+								}else{
+									hb.getChildren().add(label);
+									hb.getChildren().add(icon);
 								}
 							}
 							label.setStyle(fg);
-							vb.getChildren().add(label);
-							pane.setStyle("-fx-padding:2.0 2.0 2.0 2.0;" + bg);
-							pane.getChildren().add(vb);
-							setGraphic(pane);
+							hb.setSpacing(5);
+							hb.setStyle(bg);
+							setGraphic(hb);
 						} else {
 							setText(null);
 							setGraphic(null);
@@ -293,7 +286,6 @@ public class TableViewManager<T> {
 			}
 		});
 	}
-
 
 
 	public void run(Class clazz, String method, String param) {
@@ -350,13 +342,14 @@ public class TableViewManager<T> {
 			int[] bgColorRGB = null;
 			int[] fgColorRGB = null;
 			String fontFamily = null;
-			SpecialCase[] bgForGivenConditions = null;
-			SpecialCase[] fgForGivenConditions = null;
+			Condition[] bgForGivenConditions = null;
+			Condition[] fgForGivenConditions = null;
 			boolean isBold = false;
 			boolean isItalic = false;
+			boolean isEuroNumber = false;
 			double columnSize = 100;
 			int fontSize = 15;
-			Link isLink = null;
+			AddGlyphIcon glyphIcon = null;
 			Column colAnnotation;
 			for (Field childAttribut : childAttributs) {
 				colAnnotation = childAttribut.getAnnotation(Column.class);
@@ -367,22 +360,20 @@ public class TableViewManager<T> {
 				columnSize = colAnnotation.columnSize();
 				bgForGivenConditions = colAnnotation.bgForGivenConditions();
 				isBold = colAnnotation.isBold();
-				// isLink = colAnnotation.link();
 				isItalic = colAnnotation.isItalic();
 				bgColorRGB = colAnnotation.bgColor();
+				isEuroNumber = colAnnotation.isEuroNumber();
 				bgForGivenConditions = colAnnotation.bgForGivenConditions();
 				fgForGivenConditions = colAnnotation.fgForGivenConditions();
 				String colName = childAttribut.getName();
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
+				glyphIcon = colAnnotation.addGlyphIcon();
 				TableColumn tableColumn = createAndSetColumn(childAttribut, colName);
-				if((bgForGivenConditions != null || bgForGivenConditions != null) 
-								&& (!bgForGivenConditions[0].value()[1].trim().equals("") || !fgForGivenConditions[0].value()[1].trim().equals(""))){
-					formatForGivenCondition(tableColumn, bgForGivenConditions, fgForGivenConditions);
-				}else{
-					tableColumn.setUserData(new UserData(columnSize, bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize));
-					formatCells(tableColumn);
-				}
+				tableColumn.setMinWidth(columnSize);
+				tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,bgForGivenConditions,
+														fgForGivenConditions));
+				formatForGivenCondition(tableColumn);
 				parentCol.getColumns().add(tableColumn);
 			}
 			listOfColumns.add(parentCol);
@@ -391,7 +382,7 @@ public class TableViewManager<T> {
 	}
 
 	private TableColumn createAndSetColumn(Field att, String colName) {
-		TableColumn  tableColumn = new TableColumn(colName);
+		TableColumn tableColumn = new TableColumn(colName);
 		// associate data to column using setCellValueFactory
 		if (att.getType().isAssignableFrom(String.class) || att.getType().isAssignableFrom(SimpleStringProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(att.getName()));
@@ -418,16 +409,14 @@ public class TableViewManager<T> {
 		} else {
 			System.err.println(" Unzulässige Annotierung von Spalte " + att.getName()
 							+ ". Nur Spalte mit primitiv Datentyp dürfen hier annotiert werden");
-			Alert alert = new Alert(AlertType.ERROR);
-			alert.setHeaderText("Programmiere Fehler");
-			alert.setContentText("Sorry technische Fehler. Wir melden uns sobald das Problem gelöst wird ;)");
-			alert.show();
+			// Alert alert = new Alert(AlertType.ERROR);
+			// alert.setHeaderText("Programmiere Fehler");
+			// alert.setContentText("Sorry technische Fehler. Wir melden uns sobald das Problem gelöst wird ;)");
+			// alert.show();
 			System.exit(1);
 		}
 		return tableColumn;
 	}
-
-	
 
 
 	/**
@@ -684,9 +673,9 @@ public class TableViewManager<T> {
 	}
 
 	public void onEditCommit(Class clazz, String method) {
-		for (TableColumn tableColumnHelper : listOfColumns) {
-			tableColumnHelper.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
-
+		for (TableColumn column : listOfColumns) {
+			column.setCellFactory(TextFieldTableCell.forTableColumn());
+			column.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
 				@Override
 				public void handle(CellEditEvent event) {
 					Object o = null;

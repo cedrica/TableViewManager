@@ -1,23 +1,31 @@
-package main;
+package com.tableview.manager;
 
+
+import org.controlsfx.glyphfont.FontAwesome.Glyph;
+
+import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Column;
-import com.tableview.manager.annotation.SpecialCase;
+import com.tableview.manager.annotation.Condition;
 
 public class TestObject {
 
 	@Column(fgColor={255,255,255}, bgColor={222,111,111})
 	private String homePage;
+	
 	@Column(fgColor={255,255,255}, bgColor={222,111,111}, parent="Jesus")
 	private String cedric;
+	
 	@Column(bgForGivenConditions={
-					@SpecialCase(value = {"name0","-fx-background-color:blue;"}),
-					@SpecialCase(value = {"name3","-fx-background-color:red;"})}
-	, parent="Jesus")
+					@Condition(ifFieldValueIsEqualTo = "Christelle0", thenSetBackgroundColorTo="blue"),
+					@Condition(ifFieldValueIsEqualTo = "Christelle3",thenSetBackgroundColorTo="red")}
+	, parent="Jesus", addGlyphIcon=@AddGlyphIcon(iconName=Glyph.INSTITUTION, beforeText=true))
 	private String christelle;
+	
 	private int alt;
-	@Column(bgForGivenConditions={
-					@SpecialCase(value = {"name0","-fx-background-color:blue;"}),
-					@SpecialCase(value = {"name3","-fx-background-color:red;"})
+	
+	@Column(fgForGivenConditions={
+					@Condition(ifFieldValueIsEqualTo = "name0",thenSetBackgroundColorTo="blue"),
+					@Condition(ifFieldValueIsEqualTo = "name3",thenSetBackgroundColorTo="red")
 	})
 	private String name;
 	

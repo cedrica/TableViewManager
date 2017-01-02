@@ -1,11 +1,13 @@
+
 package com.tableview.manager
 
+
+import com.tableview.manager.TableScreen
 import javafx.scene.layout.VBox
 import javafx.scene.control.TableView
-import main.Table
 
-component Table controlledby Table {
-
+component Table controlledby TableScreen {
+	
 	VBox {
 		TableView < ? > id table {
 			static vgrow : "ALWAYS"

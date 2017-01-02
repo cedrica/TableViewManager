@@ -1,14 +1,22 @@
 package com.tableview.manager.helper;
 
+import com.tableview.manager.annotation.AddGlyphIcon;
+import com.tableview.manager.annotation.Condition;
 
 public class UserData {
 	private String foreGround;
 	private String backGround;
-	private  double columnSize;
+	private AddGlyphIcon icon;
+	private Condition[] bgForGivenConditions;
+	private Condition[] fgForGivenConditions;
+	private boolean euroNumber;
 
-	public UserData(double columnSize, int[] bgColorRGB, int[] fgColorRGB, boolean isBold, boolean isItalic, String fontFamily, int fontSize) {
-		this.columnSize = columnSize;
+	
+	
+	public UserData( int[] bgColorRGB, int[] fgColorRGB, boolean isBold, boolean isItalic, String fontFamily, int fontSize,
+					AddGlyphIcon glyphIcon, boolean isEuroNumber, Condition[] bgForGivenConditions, Condition[] fgForGivenConditions) {
 		backGround = ""; foreGround = "";
+		euroNumber = isEuroNumber;
 		if (bgColorRGB != null) {
 			if (bgColorRGB[0] != 255 || bgColorRGB[1] != 255 || bgColorRGB[2] != 255) {
 				backGround += "-fx-background-color:rgb(" + bgColorRGB[0] + "," + bgColorRGB[1] + "," + bgColorRGB[2] + ");";
@@ -31,19 +39,58 @@ public class UserData {
 		if (fontFamily != null && !fontFamily.isEmpty()) {
 			foreGround += "-fx-font-family:" + fontFamily + ";";
 		}
+		
+		this.icon = glyphIcon;
+		this.fgForGivenConditions = fgForGivenConditions;
+		this.bgForGivenConditions = bgForGivenConditions;
 	}
 
 	
 	
-	public double getColumnSize() {
-		return columnSize;
+	public boolean isEuroNumber() {
+		return euroNumber;
 	}
 
 
 	
-	public void setColumnSize(double columnSize) {
-		this.columnSize = columnSize;
+	public void setEuroNumber(boolean euroNumber) {
+		this.euroNumber = euroNumber;
 	}
+
+	public AddGlyphIcon getIcon() {
+		return icon;
+	}
+
+	public void setIcon(AddGlyphIcon icon) {
+		this.icon = icon;
+	}
+
+	
+	public Condition[] getBgForGivenConditions() {
+		return bgForGivenConditions;
+	}
+
+
+
+	
+	public void setBgForGivenConditions(Condition[] bgForGivenConditions) {
+		this.bgForGivenConditions = bgForGivenConditions;
+	}
+
+
+
+	
+	public Condition[] getFgForGivenConditions() {
+		return fgForGivenConditions;
+	}
+
+
+
+	
+	public void setFgForGivenConditions(Condition[] fgForGivenConditions) {
+		this.fgForGivenConditions = fgForGivenConditions;
+	}
+
 
 
 	public String getForeGround() {
