@@ -13,7 +13,9 @@ import java.lang.annotation.Target;
 public @interface Condition {
 	public String ifFieldValueIsEqualTo() default "";
 	/**
-	 * enter the color name. Color name muss be enter either as name as value code (like for example: #0EFF) or as RGB-function (as follow: rgb(255, 190, 0))  
+	 * Color can be entered either as name like for example: thenSetBackgroundColorTo="blue", 
+	 * as value code like for example: thenSetBackgroundColorTo="#0EFF"
+	 * or as RGB-function as follow: thenSetBackgroundColorTo="rgb(255, 190, 0)"  
 	 * @return
 	 */
 	public String thenSetBackgroundColorTo() default "";

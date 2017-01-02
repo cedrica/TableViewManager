@@ -34,14 +34,14 @@ public @interface Column {
 	
 	public AddGlyphIcon addGlyphIcon() default @AddGlyphIcon(iconName=Glyph.TENCENT_WEIBO, beforeText=false);
 	/**
-	 * has been replace by self annotation addGlyphIcon
+	 * has been replace by the annotation addGlyphIcon
 	 * @return
 	 */
 	@Deprecated
 	public FontAwesome.Glyph glyphIcon() default Glyph.TENCENT_WEIBO; 
 	public int columnSize() default 100;
 	/**
-	 * this method has been replaced by bgForGivenConditions
+	 * this method has been replaced by bgForGivenConditions and fgForGivenConditions of type Condition
 	 * 
 	 */
 	@Deprecated
