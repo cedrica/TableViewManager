@@ -22,15 +22,13 @@ public class TableScreen implements Initializable{
 	public void initialize(URL location, ResourceBundle resources) {
 		List<TestObject> list = new ArrayList<>();
 		for(int i = 0; i < 5; i++){
-			list.add(new TestObject("name"+i,"Cedric"+i,"Christelle"+i, i, "homePage"+i));
+			list.add(new TestObject("name"+i,"Cedric"+i,"Christelle"+i, i*1000, "homePage"+i));
 		}
 		items = FXCollections.observableArrayList(list);
 		TableViewManager<TestObject> tvm = new TableViewManager<TestObject>(table);
 		tvm.initColumnAndSetValueFactory(TestObject.class);
 		table.setItems(items);
 		table.setTableMenuButtonVisible(true);
-//		table.setEditable(true);
-//		tvm.onEditCommit(Table.class, "print");
 	}
 	
 	public void print(){

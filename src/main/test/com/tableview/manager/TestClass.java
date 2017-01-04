@@ -2,16 +2,17 @@ package com.tableview.manager;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class TestClass extends Application{
 
+	private final static String PATH = "/com/tableview/manager/Table.fxml";
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		FXMLLoader table = new FXMLLoader(TestClass.class.getResource("/com/tableview/manager/Table.fxml"));
-		table.load();
-		Scene scene = new Scene(table.getRoot());
+		Parent table = FXMLLoader.load(getClass().getResource(PATH));
+		Scene scene = new Scene(table);
 		primaryStage.setScene(scene);
 		primaryStage.show();
 	}

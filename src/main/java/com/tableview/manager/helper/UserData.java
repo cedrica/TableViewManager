@@ -2,6 +2,7 @@ package com.tableview.manager.helper;
 
 import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Condition;
+import com.tableview.manager.annotation.Formatter;
 
 public class UserData {
 	private String foreGround;
@@ -10,11 +11,12 @@ public class UserData {
 	private Condition[] bgForGivenConditions;
 	private Condition[] fgForGivenConditions;
 	private boolean euroNumber;
+	private Formatter formatter;
 
 	
 	
 	public UserData( int[] bgColorRGB, int[] fgColorRGB, boolean isBold, boolean isItalic, String fontFamily, int fontSize,
-					AddGlyphIcon glyphIcon, boolean isEuroNumber, Condition[] bgForGivenConditions, Condition[] fgForGivenConditions) {
+					AddGlyphIcon glyphIcon, boolean isEuroNumber, Condition[] bgForGivenConditions, Condition[] fgForGivenConditions, Formatter formatter) {
 		backGround = ""; foreGround = "";
 		euroNumber = isEuroNumber;
 		if (bgColorRGB != null) {
@@ -43,6 +45,7 @@ public class UserData {
 		this.icon = glyphIcon;
 		this.fgForGivenConditions = fgForGivenConditions;
 		this.bgForGivenConditions = bgForGivenConditions;
+		this.formatter = formatter;
 	}
 
 	
@@ -110,6 +113,20 @@ public class UserData {
 	
 	public void setBackGround(String backGround) {
 		this.backGround = backGround;
+	}
+
+
+
+	
+	public Formatter getFormatter() {
+		return formatter;
+	}
+
+
+
+	
+	public void setFormatter(Formatter formatter) {
+		this.formatter = formatter;
 	}
 	
 	

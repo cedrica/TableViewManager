@@ -1,6 +1,7 @@
 /**
+ * @author ca.leumaleu
  * this class was implemented to simplify the initialization and the setting of TableView.
- * The Class is of course an open source to be improved as desired. that is the reason why it implements a Interface.
+ * The class is of course an open source to be improved as desired. that is the reason why it implements a Interface.
  * please enter other functions in the interface that you mint they could be useful for the customizing or setting of
  * TableView.
  * In Order to initialize and render your table using TableViewManager, two main steps are supposed to be done first.
@@ -11,13 +12,13 @@
  * use for
  * special case that is why please first read the description before using the function.
  *
- * @author ca.leumaleu
  */
 package com.tableview.manager;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -37,8 +38,10 @@ import org.controlsfx.glyphfont.GlyphFontRegistry;
 import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Column;
 import com.tableview.manager.annotation.Condition;
+import com.tableview.manager.annotation.Formatter;
 import com.tableview.manager.annotation.SpecialCase;
 import com.tableview.manager.annotation.Transient;
+import com.tableview.manager.enums.FormatterTyp;
 import com.tableview.manager.helper.Helper;
 import com.tableview.manager.helper.TableColumnHelper;
 import com.tableview.manager.helper.UserData;
@@ -69,6 +72,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import javafx.util.converter.CurrencyStringConverter;
 import javafx.util.converter.DateStringConverter;
 import javafx.util.converter.DoubleStringConverter;
 import javafx.util.converter.FloatStringConverter;
@@ -164,6 +168,7 @@ public class TableViewManager<T> {
 			Condition[] bgForGivenConditions = null;
 			Condition[] fgForGivenConditions = null;
 			AddGlyphIcon glyphIcon = null;
+			Formatter formatter = null;
 			if (colAnnotation != null) {
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
@@ -174,6 +179,7 @@ public class TableViewManager<T> {
 				columnSize = colAnnotation.columnSize();
 				bgForGivenConditions = colAnnotation.bgForGivenConditions();
 				fgForGivenConditions = colAnnotation.fgForGivenConditions();
+				formatter = colAnnotation.formatter();
 				String parentName = colAnnotation.parent();
 				isBold = colAnnotation.isBold();
 				isItalic = colAnnotation.isItalic();
@@ -186,11 +192,11 @@ public class TableViewManager<T> {
 				}
 
 			}
-			TableColumn tableColumn = createAndSetColumn(att, colName);
+			TableColumn tableColumn = createColumnAndSetValueFactory(att, colName);
 			tableColumn.setMinWidth(columnSize);
-			tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,
-													bgForGivenConditions, fgForGivenConditions));
-			formatForGivenCondition(tableColumn);
+			tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,
+												bgForGivenConditions, fgForGivenConditions, formatter));
+			renderColumnCells(tableColumn);
 			listOfColumns.add(tableColumn);
 		}
 		if (childAttributs.size() == 1) {
@@ -213,7 +219,7 @@ public class TableViewManager<T> {
 	}
 
 
-	private void formatForGivenCondition(TableColumn column) {
+	private void renderColumnCells(TableColumn column) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
 
 			@Override
@@ -229,6 +235,13 @@ public class TableViewManager<T> {
 							UserData userData = (UserData) column.getUserData();
 							Condition[] bgForGivenConditions = userData.getBgForGivenConditions();
 							Condition[] fgForGivenConditions = userData.getFgForGivenConditions();
+							Formatter formatter = userData.getFormatter();
+							if(formatter != null){
+								if(formatter.formatterTyp() == FormatterTyp.CURRENCY_STRING_CONVERTER){
+									CurrencyStringConverter c = new CurrencyStringConverter();
+									item = c.toString(new BigDecimal(item.toString())); 
+								}
+							}
 							boolean isEuroNumber = userData.isEuroNumber();
 							if (isEuroNumber) {
 								String itemStr = NumberFormat.getNumberInstance(Locale.GERMANY).format(item);
@@ -253,7 +266,6 @@ public class TableViewManager<T> {
 			}
 		});
 	}
-
 
 
 	public void run(Class clazz, String method, String param) {
@@ -302,7 +314,9 @@ public class TableViewManager<T> {
 
 	/**
 	 * assign column children to they corresponding parent
-	 * @param map: key is the parent name and values children´s one
+	 * 
+	 * @param map:
+	 *        key is the parent name and values children´s one
 	 */
 	private void mergeColumns(HashMap<String, List<Field>> map) {
 
@@ -322,6 +336,7 @@ public class TableViewManager<T> {
 			int fontSize = 15;
 			AddGlyphIcon glyphIcon = null;
 			Column colAnnotation;
+			Formatter formatter;
 			for (Field childAttribut : childAttributs) {
 				colAnnotation = childAttribut.getAnnotation(Column.class);
 				bgColorRGB = colAnnotation.bgColor();
@@ -336,15 +351,16 @@ public class TableViewManager<T> {
 				isEuroNumber = colAnnotation.isEuroNumber();
 				bgForGivenConditions = colAnnotation.bgForGivenConditions();
 				fgForGivenConditions = colAnnotation.fgForGivenConditions();
+				formatter = colAnnotation.formatter();
 				String colName = childAttribut.getName();
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
 				glyphIcon = colAnnotation.addGlyphIcon();
-				TableColumn tableColumn = createAndSetColumn(childAttribut, colName);
+				TableColumn tableColumn = createColumnAndSetValueFactory(childAttribut, colName);
 				tableColumn.setMinWidth(columnSize);
 				tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,
-														bgForGivenConditions, fgForGivenConditions));
-				formatForGivenCondition(tableColumn);
+														bgForGivenConditions, fgForGivenConditions, formatter));
+				renderColumnCells(tableColumn);
 				parentCol.getColumns().add(tableColumn);
 			}
 			listOfColumns.add(parentCol);
@@ -352,7 +368,7 @@ public class TableViewManager<T> {
 
 	}
 
-	private TableColumn createAndSetColumn(Field att, String colName) {
+	private TableColumn createColumnAndSetValueFactory(Field att, String colName) {
 		TableColumn tableColumn = new TableColumn(colName);
 		// associate data to column using setCellValueFactory
 		if (att.getType().isAssignableFrom(String.class) || att.getType().isAssignableFrom(SimpleStringProperty.class)) {
@@ -496,6 +512,7 @@ public class TableViewManager<T> {
 
 	/**
 	 * hide column
+	 * 
 	 * @param column
 	 */
 	public void excludeColumn(TableColumn column) {
@@ -504,8 +521,10 @@ public class TableViewManager<T> {
 		this.tableView.getColumns().clear();
 		this.tableView.getColumns().addAll(listOfColumns);
 	}
+
 	/**
 	 * show columns by name
+	 * 
 	 * @param columnToBeInclude
 	 */
 	public void includeColumns(String... columnToBeInclude) {
@@ -521,8 +540,10 @@ public class TableViewManager<T> {
 		this.tableView.getColumns().clear();
 		this.tableView.getColumns().addAll(listOfColumns);
 	}
+
 	/**
 	 * show column column
+	 * 
 	 * @param column
 	 */
 	public void includeColumn(TableColumnHelper column) {
@@ -605,47 +626,47 @@ public class TableViewManager<T> {
 	}
 
 	/**
-	 * the function call the given update/edit method located in the given
-	 * Service class after an edit action is done
-	 *
-	 * @param serviceClazz:
-	 *        to access the class where the method to be execute is declared
-	 * @param method:
-	 *        name of the method to be execute
 	 * @author ca.leumaleu
+	 * 
+	 * the function is used to update a column by performing an action when a cell is edited.
+	 * Notice that this function will replace any present cellFactory by a TextFieldCellFactory as follow:
+	 * {@code: column.setCellFactory(TextFieldTableCell.forTableColumn());
+	 * 
+	 * @param serviceClazz:
+	 *        to access the class where the method to execute is declared
+	 * @param method:
+	 *        name of the method to execute
 	 */
-	public void performOnEditCommit(Class serviceClazz, String method) {
-		for (TableColumn tableColumnHelper : listOfColumns) {
-			tableColumnHelper.setCellFactory(TextFieldTableCell.forTableColumn());
-			tableColumnHelper.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
+	public void performOnEditCommit(TableColumn column, Class serviceClazz, String method) {
+		column.setCellFactory(TextFieldTableCell.forTableColumn());
+		column.setOnEditCommit(new EventHandler<TableColumn.CellEditEvent>() {
 
-				@Override
-				public void handle(CellEditEvent event) {
-					T en = ((T) event.getTableView().getItems().get(event.getTablePosition().getRow()));
-					Object o = null;
-					String newValue = event.getNewValue().toString();
-					String fieldName = ((PropertyValueFactory) event.getTableColumn().getCellValueFactory()).getProperty();
-					try {
-						en.getClass().getMethod("set" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1), String.class).invoke(en,
-										newValue);
-						Object t = serviceClazz.newInstance();
-						Method[] allMethods = serviceClazz.getDeclaredMethods();
-						for (Method m : allMethods) {
-							String mname = m.getName();
-							if (!mname.startsWith(method) || (m.getGenericReturnType() != void.class)) {
-								continue;
-							}
-							m.setAccessible(true);
-							o = m.invoke(t, en);
+			@Override
+			public void handle(CellEditEvent event) {
+				T en = ((T) event.getTableView().getItems().get(event.getTablePosition().getRow()));
+				Object o = null;
+				String newValue = event.getNewValue().toString();
+				String fieldName = ((PropertyValueFactory) event.getTableColumn().getCellValueFactory()).getProperty();
+				try {
+					en.getClass().getMethod("set" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1), String.class).invoke(en,
+									newValue);
+					Object t = serviceClazz.newInstance();
+					Method[] allMethods = serviceClazz.getDeclaredMethods();
+					for (Method m : allMethods) {
+						String mname = m.getName();
+						if (!mname.startsWith(method) || (m.getGenericReturnType() != void.class)) {
+							continue;
 						}
-					}
-					catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-									| InstantiationException e) {
-						logger.log(Level.SEVERE, "Commit action could not be perform " + e.getMessage());
+						m.setAccessible(true);
+						o = m.invoke(t, en);
 					}
 				}
-			});
-		}
+				catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+								| InstantiationException e) {
+					logger.log(Level.SEVERE, "Commit action could not be perform " + e.getMessage());
+				}
+			}
+		});
 	}
 
 	public void onEditCommit(Class clazz, String method) {
@@ -709,9 +730,10 @@ public class TableViewManager<T> {
 		tableView.getSelectionModel().setCellSelectionEnabled(b);
 	}
 
-
+	/**
+	 * hide the table header
+	 */
 	public void hideTableHeader() {
-		// Don't show header
 		Pane header = (Pane) tableView.lookup("TableHeaderRow");
 		if (header.isVisible()) {
 			header.setMaxHeight(0);

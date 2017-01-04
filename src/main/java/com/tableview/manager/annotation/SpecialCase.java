@@ -1,5 +1,7 @@
 package com.tableview.manager.annotation;
-
+/**@Deprecated and replaced by Condition
+ * @author ca.leumaleu
+ */
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.CLASS;
 

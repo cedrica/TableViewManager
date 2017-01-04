@@ -11,10 +11,10 @@ import javafx.scene.layout.HBox;
 
 public class Helper  {
 	public static String generateBgFont(Object item, HBox hb, String bg, UserData userData, Condition[] bgForGivenConditions) {
-		if ((bgForGivenConditions != null) && (!bgForGivenConditions[0].ifFieldValueIsEqualTo().trim().equals(""))) {
+		if ((bgForGivenConditions != null) && (!bgForGivenConditions[0].ifFieldValue().trim().equals(""))) {
 			for (Condition matcher2 : bgForGivenConditions) {
-				if (matcher2.ifFieldValueIsEqualTo().equals(item.toString())) {
-					bg += "-fx-background-color:" + matcher2.thenSetBackgroundColorTo() + ";";
+				if (matcher2.ifFieldValue().equals(item.toString())) {
+					bg += "-fx-background-color:" + matcher2.thenBackgroundColor() + ";";
 					break;
 				} else {
 					hb.setStyle(null);// important!!
@@ -27,10 +27,10 @@ public class Helper  {
 	}
 	
 	public static String generateFgFont(Object item, HBox hb, String fg, UserData userData, Condition[] fgForGivenConditions) {
-		if ((fgForGivenConditions != null) && (!fgForGivenConditions[0].ifFieldValueIsEqualTo().trim().equals(""))) {
+		if ((fgForGivenConditions != null) && (!fgForGivenConditions[0].ifFieldValue().trim().equals(""))) {
 			for (Condition matcher : fgForGivenConditions) {
-				if (matcher.ifFieldValueIsEqualTo().equals(item.toString())) {
-					fg += "-fx-text-fill:" + matcher.thenSetBackgroundColorTo() + ";";
+				if (matcher.ifFieldValue().equals(item.toString())) {
+					fg += "-fx-text-fill:" + matcher.thenBackgroundColor() + ";";
 					break;
 				} else {
 //					label.setStyle(null);

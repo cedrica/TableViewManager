@@ -6,6 +6,8 @@ import org.controlsfx.glyphfont.FontAwesome.Glyph;
 import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Column;
 import com.tableview.manager.annotation.Condition;
+import com.tableview.manager.annotation.Formatter;
+import com.tableview.manager.enums.FormatterTyp;
 
 public class TestObject {
 
@@ -16,16 +18,17 @@ public class TestObject {
 	private String cedric;
 	
 	@Column(bgForGivenConditions={
-					@Condition(ifFieldValueIsEqualTo = "Christelle0", thenSetBackgroundColorTo="blue"),
-					@Condition(ifFieldValueIsEqualTo = "Christelle3",thenSetBackgroundColorTo="red")}
+					@Condition(ifFieldValue = "Christelle0", thenBackgroundColor="blue"),
+					@Condition(ifFieldValue = "Christelle3",thenBackgroundColor="red")}
 	, parent="Jesus", addGlyphIcon=@AddGlyphIcon(iconName=Glyph.INSTITUTION, beforeText=true))
 	private String christelle;
 	
+	@Column(fgColor={255,255,255}, bgColor={222,111,111}, formatter=@Formatter(formatterTyp=FormatterTyp.CURRENCY_STRING_CONVERTER))
 	private int alt;
 	
 	@Column(fgForGivenConditions={
-					@Condition(ifFieldValueIsEqualTo = "name0",thenSetBackgroundColorTo="blue"),
-					@Condition(ifFieldValueIsEqualTo = "name3",thenSetBackgroundColorTo="red")
+					@Condition(ifFieldValue = "name0",thenBackgroundColor="blue"),
+					@Condition(ifFieldValue = "name3",thenBackgroundColor="red")
 	})
 	private String name;
 	

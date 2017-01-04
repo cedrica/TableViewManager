@@ -32,6 +32,8 @@ public @interface Column {
 	
 	public boolean isEuroNumber() default false;
 	
+	public Formatter formatter() default @Formatter();
+	
 	public AddGlyphIcon addGlyphIcon() default @AddGlyphIcon(iconName=Glyph.TENCENT_WEIBO, beforeText=false);
 	/**
 	 * has been replace by the annotation addGlyphIcon
