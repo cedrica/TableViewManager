@@ -9,6 +9,8 @@ import java.lang.annotation.Target;
 import org.controlsfx.glyphfont.FontAwesome;
 import org.controlsfx.glyphfont.FontAwesome.Glyph;
 
+import com.tableview.manager.enums.Alignement;
+
 
 @Target({ ElementType.FIELD })
 @Retention(RUNTIME)
@@ -29,6 +31,8 @@ public @interface Column {
 	public boolean isBold() default false;
 
 	public boolean isItalic() default false;
+	
+	public Alignement alignement() default Alignement.LEFT;
 	
 	public Formatter formatter() default @Formatter();
 	

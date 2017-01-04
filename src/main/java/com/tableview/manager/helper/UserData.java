@@ -3,6 +3,7 @@ package com.tableview.manager.helper;
 import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Condition;
 import com.tableview.manager.annotation.Formatter;
+import com.tableview.manager.enums.Alignement;
 
 public class UserData {
 	private String foreGround;
@@ -11,11 +12,12 @@ public class UserData {
 	private Condition[] bgForGivenConditions;
 	private Condition[] fgForGivenConditions;
 	private Formatter formatter;
+	private Alignement alignement;
 
 	
 	
 	public UserData( int[] bgColorRGB, int[] fgColorRGB, boolean isBold, boolean isItalic, String fontFamily, int fontSize,
-					AddGlyphIcon glyphIcon, Condition[] bgForGivenConditions, Condition[] fgForGivenConditions, Formatter formatter) {
+					AddGlyphIcon glyphIcon, Condition[] bgForGivenConditions, Condition[] fgForGivenConditions, Formatter formatter, Alignement alignement) {
 		backGround = ""; foreGround = "";
 		if (bgColorRGB != null) {
 			if (bgColorRGB[0] != 255 || bgColorRGB[1] != 255 || bgColorRGB[2] != 255) {
@@ -40,6 +42,7 @@ public class UserData {
 			foreGround += "-fx-font-family:" + fontFamily + ";";
 		}
 		
+		this.alignement = alignement;
 		this.icon = glyphIcon;
 		this.fgForGivenConditions = fgForGivenConditions;
 		this.bgForGivenConditions = bgForGivenConditions;
@@ -113,6 +116,15 @@ public class UserData {
 	
 	public void setFormatter(Formatter formatter) {
 		this.formatter = formatter;
+	}
+
+	public Alignement getAlignement() {
+		return this.alignement;
+	}
+
+	
+	public void setAlignement(Alignement alignement) {
+		this.alignement = alignement;
 	}
 	
 	

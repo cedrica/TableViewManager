@@ -41,6 +41,7 @@ import com.tableview.manager.annotation.Condition;
 import com.tableview.manager.annotation.Formatter;
 import com.tableview.manager.annotation.SpecialCase;
 import com.tableview.manager.annotation.Transient;
+import com.tableview.manager.enums.Alignement;
 import com.tableview.manager.enums.FormatterTyp;
 import com.tableview.manager.helper.Helper;
 import com.tableview.manager.helper.TableColumnHelper;
@@ -55,6 +56,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -70,6 +72,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import javafx.util.converter.CurrencyStringConverter;
@@ -169,6 +172,7 @@ public class TableViewManager<T> {
 			Condition[] fgForGivenConditions = null;
 			AddGlyphIcon glyphIcon = null;
 			Formatter formatter = null;
+			Alignement alignement = null;
 			if (colAnnotation != null) {
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
@@ -184,6 +188,7 @@ public class TableViewManager<T> {
 				isBold = colAnnotation.isBold();
 				isItalic = colAnnotation.isItalic();
 				glyphIcon = colAnnotation.addGlyphIcon();
+				alignement = colAnnotation.alignement();
 				if (parentName.trim().length() > 0) {
 					childAttributs.add(att);
 					mapParentNameAttribut.put(parentName, childAttributs);
@@ -194,7 +199,7 @@ public class TableViewManager<T> {
 			TableColumn tableColumn = createColumnAndSetValueFactory(att, colName);
 			tableColumn.setMinWidth(columnSize);
 			tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon,
-												bgForGivenConditions, fgForGivenConditions, formatter));
+												bgForGivenConditions, fgForGivenConditions, formatter, alignement));
 			renderColumnCells(tableColumn);
 			listOfColumns.add(tableColumn);
 		}
@@ -235,6 +240,7 @@ public class TableViewManager<T> {
 							Condition[] bgForGivenConditions = userData.getBgForGivenConditions();
 							Condition[] fgForGivenConditions = userData.getFgForGivenConditions();
 							Formatter formatter = userData.getFormatter();
+							
 							if(formatter != null){
 								if(formatter.formatterTyp() == FormatterTyp.CURRENCY_STRING_CONVERTER){
 									CurrencyStringConverter c = new CurrencyStringConverter();
@@ -249,7 +255,26 @@ public class TableViewManager<T> {
 							label.setStyle(fg);
 							hb.setSpacing(5);
 							hb.setStyle(bg);
-							setGraphic(hb);
+							VBox align = new VBox();
+							Alignement alignement = userData.getAlignement();
+							if(alignement != null){
+								if(alignement == Alignement.LEFT){
+									align.getChildren().add(hb);
+									hb.setAlignment(Pos.CENTER_LEFT);
+								} else if(alignement == Alignement.MIDDLE){
+									align.getChildren().add(hb);
+									hb.setAlignment(Pos.CENTER);
+								}else if(alignement == Alignement.RIGHT){
+									align.getChildren().add(hb);
+									hb.setAlignment(Pos.CENTER_RIGHT);
+								}
+
+								setGraphic(align);
+							}else{
+
+								setGraphic(hb);
+							}
+							
 						} else {
 							setText(null);
 							setGraphic(null);
@@ -332,6 +357,7 @@ public class TableViewManager<T> {
 			AddGlyphIcon glyphIcon = null;
 			Column colAnnotation;
 			Formatter formatter;
+			Alignement alignement = null;
 			for (Field childAttribut : childAttributs) {
 				colAnnotation = childAttribut.getAnnotation(Column.class);
 				bgColorRGB = colAnnotation.bgColor();
@@ -350,10 +376,11 @@ public class TableViewManager<T> {
 				String customname = colAnnotation.customname();
 				colName = (customname.length() <= 0) ? colName : customname;
 				glyphIcon = colAnnotation.addGlyphIcon();
+				alignement = colAnnotation.alignement();
 				TableColumn tableColumn = createColumnAndSetValueFactory(childAttribut, colName);
 				tableColumn.setMinWidth(columnSize);
 				tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon,
-														bgForGivenConditions, fgForGivenConditions, formatter));
+														bgForGivenConditions, fgForGivenConditions, formatter, alignement));
 				renderColumnCells(tableColumn);
 				parentCol.getColumns().add(tableColumn);
 			}
