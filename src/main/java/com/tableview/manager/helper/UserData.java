@@ -10,15 +10,13 @@ public class UserData {
 	private AddGlyphIcon icon;
 	private Condition[] bgForGivenConditions;
 	private Condition[] fgForGivenConditions;
-	private boolean euroNumber;
 	private Formatter formatter;
 
 	
 	
 	public UserData( int[] bgColorRGB, int[] fgColorRGB, boolean isBold, boolean isItalic, String fontFamily, int fontSize,
-					AddGlyphIcon glyphIcon, boolean isEuroNumber, Condition[] bgForGivenConditions, Condition[] fgForGivenConditions, Formatter formatter) {
+					AddGlyphIcon glyphIcon, Condition[] bgForGivenConditions, Condition[] fgForGivenConditions, Formatter formatter) {
 		backGround = ""; foreGround = "";
-		euroNumber = isEuroNumber;
 		if (bgColorRGB != null) {
 			if (bgColorRGB[0] != 255 || bgColorRGB[1] != 255 || bgColorRGB[2] != 255) {
 				backGround += "-fx-background-color:rgb(" + bgColorRGB[0] + "," + bgColorRGB[1] + "," + bgColorRGB[2] + ");";
@@ -46,18 +44,6 @@ public class UserData {
 		this.fgForGivenConditions = fgForGivenConditions;
 		this.bgForGivenConditions = bgForGivenConditions;
 		this.formatter = formatter;
-	}
-
-	
-	
-	public boolean isEuroNumber() {
-		return euroNumber;
-	}
-
-
-	
-	public void setEuroNumber(boolean euroNumber) {
-		this.euroNumber = euroNumber;
 	}
 
 	public AddGlyphIcon getIcon() {

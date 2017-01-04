@@ -12,6 +12,6 @@ import com.tableview.manager.enums.FormatterTyp;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({FIELD })
 public @interface Formatter {
-	public FormatterTyp formatterTyp() default FormatterTyp.CURRENCY_STRING_CONVERTER; 
+	public FormatterTyp formatterTyp() default FormatterTyp.NULL; 
 	public String pattern() default "";
 }

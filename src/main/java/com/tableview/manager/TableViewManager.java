@@ -183,7 +183,6 @@ public class TableViewManager<T> {
 				String parentName = colAnnotation.parent();
 				isBold = colAnnotation.isBold();
 				isItalic = colAnnotation.isItalic();
-				isEuroNumber = colAnnotation.isEuroNumber();
 				glyphIcon = colAnnotation.addGlyphIcon();
 				if (parentName.trim().length() > 0) {
 					childAttributs.add(att);
@@ -194,7 +193,7 @@ public class TableViewManager<T> {
 			}
 			TableColumn tableColumn = createColumnAndSetValueFactory(att, colName);
 			tableColumn.setMinWidth(columnSize);
-			tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,
+			tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon,
 												bgForGivenConditions, fgForGivenConditions, formatter));
 			renderColumnCells(tableColumn);
 			listOfColumns.add(tableColumn);
@@ -240,12 +239,8 @@ public class TableViewManager<T> {
 								if(formatter.formatterTyp() == FormatterTyp.CURRENCY_STRING_CONVERTER){
 									CurrencyStringConverter c = new CurrencyStringConverter();
 									item = c.toString(new BigDecimal(item.toString())); 
+									label = new Label(item.toString());
 								}
-							}
-							boolean isEuroNumber = userData.isEuroNumber();
-							if (isEuroNumber) {
-								String itemStr = NumberFormat.getNumberInstance(Locale.GERMANY).format(item);
-								label = new Label(itemStr);
 							}
 							bg = Helper.generateBgFont(item, hb, bg, userData, bgForGivenConditions);
 							fg = Helper.generateFgFont(item, hb, fg, userData, fgForGivenConditions);
@@ -348,7 +343,6 @@ public class TableViewManager<T> {
 				isBold = colAnnotation.isBold();
 				isItalic = colAnnotation.isItalic();
 				bgColorRGB = colAnnotation.bgColor();
-				isEuroNumber = colAnnotation.isEuroNumber();
 				bgForGivenConditions = colAnnotation.bgForGivenConditions();
 				fgForGivenConditions = colAnnotation.fgForGivenConditions();
 				formatter = colAnnotation.formatter();
@@ -358,7 +352,7 @@ public class TableViewManager<T> {
 				glyphIcon = colAnnotation.addGlyphIcon();
 				TableColumn tableColumn = createColumnAndSetValueFactory(childAttribut, colName);
 				tableColumn.setMinWidth(columnSize);
-				tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, isEuroNumber,
+				tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon,
 														bgForGivenConditions, fgForGivenConditions, formatter));
 				renderColumnCells(tableColumn);
 				parentCol.getColumns().add(tableColumn);
