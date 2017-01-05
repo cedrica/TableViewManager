@@ -245,8 +245,10 @@ public class TableViewManager<T> {
 								if(formatter.formatterTyp() == FormatterTyp.CURRENCY_STRING_CONVERTER){
 									CurrencyStringConverter c = new CurrencyStringConverter();
 									item = c.toString(new BigDecimal(item.toString())); 
-									label = new Label(item.toString());
+								}else if(formatter.formatterTyp() == FormatterTyp.AMOUNT){
+									item = Helper.customFormat(formatter.pattern(), item);
 								}
+								label = new Label(item.toString());
 							}
 							bg = Helper.generateBgFont(item, hb, bg, userData, bgForGivenConditions);
 							fg = Helper.generateFgFont(item, hb, fg, userData, fgForGivenConditions);

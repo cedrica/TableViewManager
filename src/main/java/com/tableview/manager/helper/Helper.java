@@ -1,6 +1,9 @@
 package com.tableview.manager.helper;
 
 import org.controlsfx.glyphfont.GlyphFontRegistry;
+
+import java.text.DecimalFormat;
+
 import org.controlsfx.glyphfont.FontAwesome.Glyph;
 
 import com.tableview.manager.annotation.AddGlyphIcon;
@@ -70,4 +73,9 @@ public class Helper  {
 		}
 		return hb;
 	}
+	
+	 static public String  customFormat(String pattern, Object value ) {
+	      DecimalFormat myFormatter = new DecimalFormat(pattern);
+	      return myFormatter.format(value);
+	   }
 }
