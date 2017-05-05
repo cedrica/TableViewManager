@@ -70,6 +70,7 @@ public class Helper  {
 					hb.getChildren().add(icon);
 				}
 			}
+			icon.setStyle("-fx-text-fill:"+addGlyphIcon.colorAsHexCode()+";");
 		}
 		return hb;
 	}

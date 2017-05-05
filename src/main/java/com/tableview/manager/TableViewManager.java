@@ -47,6 +47,7 @@ import com.tableview.manager.helper.Helper;
 import com.tableview.manager.helper.TableColumnHelper;
 import com.tableview.manager.helper.UserData;
 
+import javafx.beans.property.ListProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleFloatProperty;
@@ -769,5 +770,11 @@ public class TableViewManager<T> {
 	public TableView<T> getTableView() {
 		return tableView;
 
+	}
+	
+	public void setItemsPropertyMethod(ListProperty<T> listProperty){
+		tableView.itemsProperty().bind(listProperty);
+		if (listProperty.get() != null && !listProperty.get().isEmpty())
+			initColumnAndSetValueFactory(listProperty.get().get(0).getClass());
 	}
 }

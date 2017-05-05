@@ -20,5 +20,6 @@ public @interface AddGlyphIcon {
 	 * since we are obliged to assign a default icon name, we setted it to Glyph.TENCENT_WEIBO. But this will be displayed just by user request 
 	 * @return
 	 */
+	public String colorAsHexCode() default "#fff";
 	public boolean showDefaultIcon() default false;
 }
