@@ -49,8 +49,10 @@ public class Helper  {
 	public static HBox assignGlyphIcon(HBox hb, Label label, AddGlyphIcon addGlyphIcon) {
 		Label icon = new Label();
 		if (addGlyphIcon != null) {
+			org.controlsfx.glyphfont.Glyph create = GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName());
+			create.setStyle("-fx-text-fill:"+addGlyphIcon.colorAsHexCode()+";");
 			if (addGlyphIcon.iconName().equals(Glyph.TENCENT_WEIBO) && addGlyphIcon.showDefaultIcon()) {
-				icon.setGraphic(GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName()));
+				icon.setGraphic(create);
 				if (addGlyphIcon.beforeText()) {
 					hb.getChildren().add(icon);
 					hb.getChildren().add(label);
@@ -61,7 +63,7 @@ public class Helper  {
 			} else if (addGlyphIcon.iconName().equals(Glyph.TENCENT_WEIBO) && !addGlyphIcon.showDefaultIcon()) {
 				hb.getChildren().add(label);
 			} else {
-				icon.setGraphic(GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName()));
+				icon.setGraphic(create);
 				if (addGlyphIcon.beforeText()) {
 					hb.getChildren().add(icon);
 					hb.getChildren().add(label);
@@ -70,7 +72,6 @@ public class Helper  {
 					hb.getChildren().add(icon);
 				}
 			}
-			icon.setStyle("-fx-text-fill:"+addGlyphIcon.colorAsHexCode()+";");
 		}
 		return hb;
 	}
