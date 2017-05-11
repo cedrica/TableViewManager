@@ -102,7 +102,6 @@ public class TableViewManager<T> {
 	}
 
 	public TableViewManager() {
-
 	}
 
 	/**
