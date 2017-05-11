@@ -1,1 +1,2 @@
 # TableViewManager
+mvn clean install
