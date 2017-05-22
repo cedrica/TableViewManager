@@ -605,4 +605,8 @@ public class TableViewManager<T> {
 		if (listProperty.get() != null && !listProperty.get().isEmpty())
 			initColumnAndSetValueFactory(listProperty.get().get(0).getClass());
 	}
+	
+	public void setTableMenuButtonVisible(boolean b){
+	    tableView.setTableMenuButtonVisible(b);
+	}
 }
