@@ -3,6 +3,7 @@ package com.tableview.manager.helper;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Calendar;
 
 import org.controlsfx.glyphfont.FontAwesome.Glyph;
 import org.controlsfx.glyphfont.GlyphFontRegistry;
@@ -87,8 +88,6 @@ public class Helper {
 
 	public static String customLocalDateFormat(String pattern, LocalDate value) {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
-		String format = formatter.format(value);
-		System.out.println(format+"----------->");
-		return format;
+		return localDate;
 	}
 }

@@ -234,6 +234,7 @@ public class TableViewManager<T> {
 								} else if (formatter.formatterTyp() == FormatterTyp.AMOUNT) {
 									item = Helper.customFormat(formatter.pattern(), item);
 								}else if (formatter.formatterTyp() == FormatterTyp.LOCALDATE) {
+									System.out.println("--------->"+item.toString());
 									item = Helper.customLocalDateFormat(formatter.pattern(), (LocalDate)item);
 								}
 								label = new Label(item.toString());
