@@ -86,8 +86,8 @@ public class Helper {
 	}
 
 	public static String customLocalDateFormat(String pattern, LocalDate value) {
-		System.out.println(value.toString());
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
-		return value.format(formatter);
+		String format = formatter.format(value);
+		return format;
 	}
 }
