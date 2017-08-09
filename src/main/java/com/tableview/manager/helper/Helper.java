@@ -2,8 +2,11 @@ package com.tableview.manager.helper;
 
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Calendar;
+import java.time.format.FormatStyle;
+import java.util.Locale;
 
 import org.controlsfx.glyphfont.FontAwesome.Glyph;
 import org.controlsfx.glyphfont.GlyphFontRegistry;
@@ -87,7 +90,9 @@ public class Helper {
 	}
 
 	public static String customLocalDateFormat(String pattern, LocalDate value) {
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
-		return localDate;
+		LocalDateTime localDateTime = LocalDateTime.of(value, LocalTime.MIN);
+		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
+		return localDateTime.format(dateTimeFormatter);
+
 	}
 }

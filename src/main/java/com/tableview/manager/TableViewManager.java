@@ -22,36 +22,26 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.controlsfx.glyphfont.FontAwesome;
-import org.controlsfx.glyphfont.FontAwesome.Glyph;
-import org.controlsfx.glyphfont.GlyphFontRegistry;
 
 import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Column;
 import com.tableview.manager.annotation.Condition;
 import com.tableview.manager.annotation.Formatter;
-import com.tableview.manager.annotation.SpecialCase;
 import com.tableview.manager.annotation.Transient;
 import com.tableview.manager.enums.Alignement;
 import com.tableview.manager.enums.FormatterTyp;
 import com.tableview.manager.helper.Helper;
-import com.tableview.manager.helper.TableColumnHelper;
 import com.tableview.manager.helper.UserData;
 
 import javafx.beans.property.ListProperty;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -62,8 +52,6 @@ import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableCell;
@@ -234,7 +222,6 @@ public class TableViewManager<T> {
 								} else if (formatter.formatterTyp() == FormatterTyp.AMOUNT) {
 									item = Helper.customFormat(formatter.pattern(), item);
 								}else if (formatter.formatterTyp() == FormatterTyp.LOCALDATE) {
-									System.out.println("--------->"+item.toString());
 									item = Helper.customLocalDateFormat(formatter.pattern(), (LocalDate)item);
 								}
 								label = new Label(item.toString());
