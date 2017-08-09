@@ -2,7 +2,9 @@ package com.tableview.manager.helper;
 
 import org.controlsfx.glyphfont.GlyphFontRegistry;
 
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 
 import org.controlsfx.glyphfont.FontAwesome.Glyph;
 
@@ -12,8 +14,9 @@ import com.tableview.manager.annotation.Condition;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 
-public class Helper  {
-	public static String generateBgFont(Object item, HBox hb, String bg, UserData userData, Condition[] bgForGivenConditions) {
+public class Helper {
+	public static String generateBgFont(Object item, HBox hb, String bg, UserData userData,
+			Condition[] bgForGivenConditions) {
 		if ((bgForGivenConditions != null) && (!bgForGivenConditions[0].ifFieldValue().trim().equals(""))) {
 			for (Condition matcher2 : bgForGivenConditions) {
 				if (matcher2.ifFieldValue().equals(item.toString())) {
@@ -28,15 +31,16 @@ public class Helper  {
 		}
 		return bg;
 	}
-	
-	public static String generateFgFont(Object item, HBox hb, String fg, UserData userData, Condition[] fgForGivenConditions) {
+
+	public static String generateFgFont(Object item, HBox hb, String fg, UserData userData,
+			Condition[] fgForGivenConditions) {
 		if ((fgForGivenConditions != null) && (!fgForGivenConditions[0].ifFieldValue().trim().equals(""))) {
 			for (Condition matcher : fgForGivenConditions) {
 				if (matcher.ifFieldValue().equals(item.toString())) {
 					fg += "-fx-text-fill:" + matcher.thenBackgroundColor() + ";";
 					break;
 				} else {
-//					label.setStyle(null);
+					// label.setStyle(null);
 					hb.setStyle(null);// important!!
 				}
 			}
@@ -45,12 +49,13 @@ public class Helper  {
 		}
 		return fg;
 	}
-	
+
 	public static HBox assignGlyphIcon(HBox hb, Label label, AddGlyphIcon addGlyphIcon) {
 		Label icon = new Label();
 		if (addGlyphIcon != null) {
-			org.controlsfx.glyphfont.Glyph create = GlyphFontRegistry.font("FontAwesome").create(addGlyphIcon.iconName());
-			create.setStyle("-fx-text-fill:"+addGlyphIcon.colorAsHexCode()+";");
+			org.controlsfx.glyphfont.Glyph create = GlyphFontRegistry.font("FontAwesome")
+					.create(addGlyphIcon.iconName());
+			create.setStyle("-fx-text-fill:" + addGlyphIcon.colorAsHexCode() + ";");
 			if (addGlyphIcon.iconName().equals(Glyph.TENCENT_WEIBO) && addGlyphIcon.showDefaultIcon()) {
 				icon.setGraphic(create);
 				if (addGlyphIcon.beforeText()) {
@@ -75,9 +80,14 @@ public class Helper  {
 		}
 		return hb;
 	}
-	
-	 static public String  customFormat(String pattern, Object value ) {
-	      DecimalFormat myFormatter = new DecimalFormat(pattern);
-	      return myFormatter.format(value);
-	   }
+
+	 public static String customFormat(String pattern, Object value) {
+		DecimalFormat myFormatter = new DecimalFormat(pattern);
+		return myFormatter.format(value);
+	}
+	 
+	 public static String customDateFormat(String pattern, Object value) {
+			DateFormat myFormatter = new SimpleDateFormat(pattern);
+			return myFormatter.format(value);
+		}
 }

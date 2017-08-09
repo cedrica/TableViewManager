@@ -212,7 +212,6 @@ public class TableViewManager<T> {
 
 	private void renderColumnCells(TableColumn column) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
-
 			@Override
 			public TableCell call(TableColumn param) {
 				TableCell cell = new TableCell() {
@@ -234,6 +233,8 @@ public class TableViewManager<T> {
 									item = c.toString(new BigDecimal(item.toString()));
 								} else if (formatter.formatterTyp() == FormatterTyp.AMOUNT) {
 									item = Helper.customFormat(formatter.pattern(), item);
+								}else if (formatter.formatterTyp() == FormatterTyp.DATE) {
+									item = Helper.customDateFormat(formatter.pattern(), item);
 								}
 								label = new Label(item.toString());
 							}
