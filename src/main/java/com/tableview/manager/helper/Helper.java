@@ -1,12 +1,11 @@
 package com.tableview.manager.helper;
 
-import org.controlsfx.glyphfont.GlyphFontRegistry;
-
-import java.text.DateFormat;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 import org.controlsfx.glyphfont.FontAwesome.Glyph;
+import org.controlsfx.glyphfont.GlyphFontRegistry;
 
 import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Condition;
@@ -81,13 +80,13 @@ public class Helper {
 		return hb;
 	}
 
-	 public static String customFormat(String pattern, Object value) {
+	public static String customFormat(String pattern, Object value) {
 		DecimalFormat myFormatter = new DecimalFormat(pattern);
 		return myFormatter.format(value);
 	}
-	 
-	 public static String customDateFormat(String pattern, Object value) {
-			DateFormat myFormatter = new SimpleDateFormat(pattern);
-			return myFormatter.format(value);
-		}
+
+	public static String customLocalDateFormat(String pattern, LocalDate value) {
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+		return value.format(formatter);
+	}
 }
