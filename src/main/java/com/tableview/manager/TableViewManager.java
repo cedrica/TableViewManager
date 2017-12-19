@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.script.SimpleBindings;
+
 import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Column;
 import com.tableview.manager.annotation.Condition;
@@ -77,9 +79,9 @@ import javafx.util.converter.LongStringConverter;
 @SuppressWarnings("all")
 public class TableViewManager<T> {
 
-	private TableView			tableView;
-	private List<TableColumn>	listOfColumns;
-	private static Logger		logger	= null;
+	private TableView tableView;
+	private List<TableColumn> listOfColumns;
+	private static Logger logger = null;
 
 	public TableViewManager(TableView tableView) {
 		this.tableView = tableView;
@@ -117,7 +119,6 @@ public class TableViewManager<T> {
 		return listOfColumns;
 	}
 
-
 	public void setListOfColumns(List<TableColumn> listOfColumns) {
 		this.listOfColumns = listOfColumns;
 	}
@@ -127,7 +128,7 @@ public class TableViewManager<T> {
 	 * are represented by the name of the attributes of the POJO
 	 *
 	 * @param entityClazz:
-	 *        the class name of the PoJo
+	 *            the class name of the PoJo
 	 */
 	public void initColumnAndSetValueFactory(Class entityClazz) {
 		listOfColumns = new ArrayList<TableColumn>();
@@ -181,8 +182,8 @@ public class TableViewManager<T> {
 			}
 			TableColumn tableColumn = createColumnAndSetValueFactory(att, colName);
 			tableColumn.setMinWidth(columnSize);
-			tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, bgForGivenConditions,
-													fgForGivenConditions, formatter, alignement));
+			tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize,
+					glyphIcon, bgForGivenConditions, fgForGivenConditions, formatter, alignement));
 			renderColumnCells(tableColumn);
 			listOfColumns.add(tableColumn);
 		}
@@ -196,7 +197,6 @@ public class TableViewManager<T> {
 		this.tableView.getColumns().clear();
 		this.tableView.getColumns().setAll(listOfColumns);
 	}
-
 
 	private void renderColumnCells(TableColumn column) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
@@ -221,8 +221,8 @@ public class TableViewManager<T> {
 									item = c.toString(new BigDecimal(item.toString()));
 								} else if (formatter.formatterTyp() == FormatterTyp.AMOUNT) {
 									item = Helper.customFormat(formatter.pattern(), item);
-								}else if (formatter.formatterTyp() == FormatterTyp.LOCALDATE) {
-									item = Helper.customLocalDateFormat(formatter.pattern(), (LocalDate)item);
+								} else if (formatter.formatterTyp() == FormatterTyp.LOCALDATE) {
+									item = Helper.customLocalDateFormat(formatter.pattern(), (LocalDate) item);
 								}
 								label = new Label(item.toString());
 							}
@@ -265,7 +265,6 @@ public class TableViewManager<T> {
 		});
 	}
 
-
 	public void run(Class clazz, String method, String param) {
 		try {
 			Object t = clazz.newInstance();
@@ -276,12 +275,10 @@ public class TableViewManager<T> {
 					return; // no such a method found
 				m.setAccessible(true);
 				m.invoke(t, param);
-			}
-			catch (NoSuchMethodException e) {
+			} catch (NoSuchMethodException e) {
 				e.printStackTrace();
 			}
-		}
-		catch (Exception ex) {
+		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
 	}
@@ -290,7 +287,7 @@ public class TableViewManager<T> {
 	 * assign column children to they corresponding parent
 	 * 
 	 * @param map:
-	 *        key is the parent name and values children´s one
+	 *            key is the parent name and values children´s one
 	 */
 	private void mergeColumns(HashMap<String, List<Field>> map) {
 
@@ -333,8 +330,8 @@ public class TableViewManager<T> {
 				alignement = colAnnotation.alignement();
 				TableColumn tableColumn = createColumnAndSetValueFactory(childAttribut, colName);
 				tableColumn.setMinWidth(columnSize);
-				tableColumn.setUserData(new UserData(	bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize, glyphIcon, bgForGivenConditions,
-														fgForGivenConditions, formatter, alignement));
+				tableColumn.setUserData(new UserData(bgColorRGB, fgColorRGB, isBold, isItalic, fontFamily, fontSize,
+						glyphIcon, bgForGivenConditions, fgForGivenConditions, formatter, alignement));
 				renderColumnCells(tableColumn);
 				parentCol.getColumns().add(tableColumn);
 			}
@@ -347,44 +344,47 @@ public class TableViewManager<T> {
 	 * create column and set factory value
 	 * 
 	 * @param att:
-	 *        field of the Pojos the be map to the column
+	 *            field of the Pojos the be map to the column
 	 * @param colName:
-	 *        column name
+	 *            column name
 	 * @return
 	 */
 	private TableColumn createColumnAndSetValueFactory(Field att, String colName) {
 		TableColumn tableColumn = new TableColumn(colName);
 		// associate data to column using setCellValueFactory
-		if (att.getType().isAssignableFrom(String.class) || att.getType().isAssignableFrom(SimpleStringProperty.class)) {
+		if (att.getType().isAssignableFrom(String.class)
+				|| att.getType().isAssignableFrom(SimpleStringProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, String>(att.getName()));
 			// tableColumn.setConverterClazz(StringConverter.class);
 		} else if (att.getType().isAssignableFrom(Integer.class) || att.getType().isAssignableFrom(int.class)
-						|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
+				|| att.getType().isAssignableFrom(SimpleIntegerProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Integer>(att.getName()));
 			// tableColumn.setConverterClazz(IntegerStringConverter.class);
 		} else if (att.getType().isAssignableFrom(Long.class) || att.getType().isAssignableFrom(long.class)
-						|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
+				|| att.getType().isAssignableFrom(SimpleLongProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Long>(att.getName()));
 			// tableColumn.setConverterClazz(LongStringConverter.class);
 		} else if (att.getType().isAssignableFrom(Double.class) || att.getType().isAssignableFrom(double.class)
-						|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
+				|| att.getType().isAssignableFrom(SimpleDoubleProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Double>(att.getName()));
 			// tableColumn.setConverterClazz(DoubleStringConverter.class);
 		} else if (att.getType().isAssignableFrom(Date.class) || att.getType().isAssignableFrom(LocalDate.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(att.getName()));
 			// tableColumn.setConverterClazz(DateStringConverter.class);
 		} else if (att.getType().isAssignableFrom(Float.class) || att.getType().isAssignableFrom(float.class)
-						|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
+				|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(att.getName()));
+			// tableColumn.setConverterClazz(FloatStringConverter.class);
+		} else if (att.getType().isAssignableFrom(BigDecimal.class)) {
+			tableColumn.setCellValueFactory(new PropertyValueFactory<T, BigDecimal>(att.getName()));
 			// tableColumn.setConverterClazz(FloatStringConverter.class);
 		} else {
 			System.err.println(" Unzulässige Annotierung von Spalte " + att.getName()
-							+ ". Nur Spalte mit primitiv Datentyp dürfen hier annotiert werden");
+					+ ". Nur Spalte mit primitiv Datentyp dürfen hier annotiert werden");
 			System.exit(1);
 		}
 		return tableColumn;
 	}
-
 
 	/**
 	 * to assign a custom node to the cells of a given column.
@@ -413,7 +413,6 @@ public class TableViewManager<T> {
 		});
 	}
 
-
 	/**
 	 * render the given column cells with the given Node
 	 * 
@@ -425,8 +424,8 @@ public class TableViewManager<T> {
 	}
 
 	/**
-	 * set the cell factory depending on the given converter. if converter is null the return a new
-	 * TextFieldTableCell(new StringConverterHelper());
+	 * set the cell factory depending on the given converter. if converter is
+	 * null the return a new TextFieldTableCell(new StringConverterHelper());
 	 * 
 	 * @param tabColumn
 	 * @param converterClazz
@@ -462,7 +461,7 @@ public class TableViewManager<T> {
 	 * @param column
 	 * @param converterClazz
 	 * @param ol:
-	 *        list of items
+	 *            list of items
 	 */
 	public void setComboboxTableCellFactory(TableColumn column, Class converterClazz, ObservableList<T> ol) {
 		if (column == null)
@@ -500,16 +499,16 @@ public class TableViewManager<T> {
 		});
 	}
 
-
 	/**
-	 * @author ca.leumaleu
-	 *         the function is used to update a cell by performing an action when a cell is edited.
-	 *         Notice that this function will replace any present cellFactory by a TextFieldCellFactory as follow:
+	 * @author ca.leumaleu the function is used to update a cell by performing
+	 *         an action when a cell is edited. Notice that this function will
+	 *         replace any present cellFactory by a TextFieldCellFactory as
+	 *         follow:
 	 *         {@code: column.setCellFactory(TextFieldTableCell.forTableColumn());
 	 * @param serviceClazz:
-	 *        to access the class where the method to execute is declared
+	 *            to access the class where the method to execute is declared
 	 * @param method:
-	 *        name of the method to execute
+	 *            name of the method to execute
 	 */
 	public void performOnEditCommit(TableColumn column, Class serviceClazz, String method) {
 		column.setCellFactory(TextFieldTableCell.forTableColumn());
@@ -522,8 +521,10 @@ public class TableViewManager<T> {
 				String enteredValue = event.getNewValue().toString();
 				String fieldName = ((PropertyValueFactory) event.getTableColumn().getCellValueFactory()).getProperty();
 				try {
-					itemObject.getClass().getMethod("set" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1), String.class)
-									.invoke(itemObject, enteredValue);
+					itemObject.getClass()
+							.getMethod("set" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1),
+									String.class)
+							.invoke(itemObject, enteredValue);
 					Object t = serviceClazz.newInstance();
 					Method[] allMethods = serviceClazz.getDeclaredMethods();
 					for (Method m : allMethods) {
@@ -534,9 +535,8 @@ public class TableViewManager<T> {
 						m.setAccessible(true);
 						o = m.invoke(t, itemObject);
 					}
-				}
-				catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
-								| InstantiationException e) {
+				} catch (SecurityException | IllegalAccessException | IllegalArgumentException
+						| InvocationTargetException | NoSuchMethodException | InstantiationException e) {
 					logger.log(Level.SEVERE, "Commit action could not be perform " + e.getMessage());
 				}
 			}
@@ -594,8 +594,8 @@ public class TableViewManager<T> {
 		if (listProperty.get() != null && !listProperty.get().isEmpty())
 			initColumnAndSetValueFactory(listProperty.get().get(0).getClass());
 	}
-	
-	public void setTableMenuButtonVisible(boolean b){
-	    tableView.setTableMenuButtonVisible(b);
+
+	public void setTableMenuButtonVisible(boolean b) {
+		tableView.setTableMenuButtonVisible(b);
 	}
 }
