@@ -359,6 +359,7 @@ public class TableViewManager<T> {
 	 */
 	private TableColumn createColumnAndSetValueFactory(Field att, String colName) {
 		TableColumn tableColumn = new TableColumn(colName);
+		tableColumn.setSortable(true);
 		// associate data to column using setCellValueFactory
 		if (att.getType().isAssignableFrom(String.class)
 				|| att.getType().isAssignableFrom(SimpleStringProperty.class)) {
