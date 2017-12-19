@@ -5,8 +5,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.util.Locale;
 
 import org.controlsfx.glyphfont.FontAwesome.Glyph;
 import org.controlsfx.glyphfont.GlyphFontRegistry;
@@ -40,7 +38,7 @@ public class Helper {
 		if ((fgForGivenConditions != null) && (!fgForGivenConditions[0].ifFieldValue().trim().equals(""))) {
 			for (Condition matcher : fgForGivenConditions) {
 				if (matcher.ifFieldValue().equals(item.toString())) {
-					fg += "-fx-text-fill:" + matcher.thenBackgroundColor() + ";";
+					fg += "-fx-text-fill:" + matcher.thenForegroundColor() + ";";
 					break;
 				} else {
 					// label.setStyle(null);

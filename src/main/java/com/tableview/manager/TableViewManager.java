@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.script.SimpleBindings;
-
 import com.tableview.manager.annotation.AddGlyphIcon;
 import com.tableview.manager.annotation.Column;
 import com.tableview.manager.annotation.Condition;
@@ -208,13 +206,10 @@ public class TableViewManager<T> {
 					public void updateItem(Object item, boolean empty) {
 						if (item != null) {
 							HBox hb = new HBox();
-							Label label = new Label(item.toString());
-							String fg = "", bg = "";
+							
 							UserData userData = (UserData) column.getUserData();
-							Condition[] bgForGivenConditions = userData.getBgForGivenConditions();
-							Condition[] fgForGivenConditions = userData.getFgForGivenConditions();
 							Formatter formatter = userData.getFormatter();
-
+							Label label = new Label(item.toString());
 							if (formatter != null) {
 								if (formatter.formatterTyp() == FormatterTyp.CURRENCY_STRING_CONVERTER) {
 									CurrencyStringConverter c = new CurrencyStringConverter();
@@ -226,37 +221,50 @@ public class TableViewManager<T> {
 								}
 								label = new Label(item.toString());
 							}
+							
+							Condition[] bgForGivenConditions = userData.getBgForGivenConditions();
+							Condition[] fgForGivenConditions = userData.getFgForGivenConditions();
+							String fg = "", bg = "";
 							bg = Helper.generateBgFont(item, hb, bg, userData, bgForGivenConditions);
 							fg = Helper.generateFgFont(item, hb, fg, userData, fgForGivenConditions);
+							
 							AddGlyphIcon addGlyphIcon = userData.getIcon();
-							hb = Helper.assignGlyphIcon(hb, label, addGlyphIcon);
-							label.setStyle(fg);
-							hb.setSpacing(5);
-							hb.setStyle(bg);
-							VBox align = new VBox();
-							Alignement alignement = userData.getAlignement();
-							if (alignement != null) {
-								if (alignement == Alignement.LEFT) {
-									align.getChildren().add(hb);
-									hb.setAlignment(Pos.CENTER_LEFT);
-								} else if (alignement == Alignement.MIDDLE) {
-									align.getChildren().add(hb);
-									hb.setAlignment(Pos.CENTER);
-								} else if (alignement == Alignement.RIGHT) {
-									align.getChildren().add(hb);
-									hb.setAlignment(Pos.CENTER_RIGHT);
-								}
-
-								setGraphic(align);
-							} else {
-
-								setGraphic(hb);
-							}
+							hb = manageGlyphIcon(hb, label, fg, bg, addGlyphIcon);
+							manageAlignement(hb, userData);
 
 						} else {
 							setText(null);
 							setGraphic(null);
 							setStyle(null);
+						}
+					}
+
+					private HBox manageGlyphIcon(HBox hb, Label label, String fg, String bg,
+							AddGlyphIcon addGlyphIcon) {
+						hb = Helper.assignGlyphIcon(hb, label, addGlyphIcon);
+						label.setStyle(fg);
+						hb.setSpacing(5);
+						hb.setStyle(bg);
+						return hb;
+					}
+
+					private void manageAlignement(HBox hb, UserData userData) {
+						VBox align = new VBox();
+						Alignement alignement = userData.getAlignement();
+						if (alignement != null) {
+							if (alignement == Alignement.LEFT) {
+								align.getChildren().add(hb);
+								hb.setAlignment(Pos.CENTER_LEFT);
+							} else if (alignement == Alignement.MIDDLE) {
+								align.getChildren().add(hb);
+								hb.setAlignment(Pos.CENTER);
+							} else if (alignement == Alignement.RIGHT) {
+								align.getChildren().add(hb);
+								hb.setAlignment(Pos.CENTER_RIGHT);
+							}
+							setGraphic(align);
+						} else {
+							setGraphic(hb);
 						}
 					}
 				};

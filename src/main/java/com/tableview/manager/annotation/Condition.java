@@ -23,4 +23,5 @@ public @interface Condition {
 	 * @return
 	 */
 	public String thenBackgroundColor() default "";
+	public String thenForegroundColor() default "";
 }
