@@ -21,6 +21,34 @@
 			<version>8.40.12</version>
 		</dependency>
 	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>com.zenjava</groupId>
+				<artifactId>javafx-maven-plugin</artifactId>
+				<configuration>
+					<mainClass>com.consacresdeleternel.consacrebeamer.ConsacreBeamerApp</mainClass>
+					<jfxMainAppJarName>ConsacreBeamer.jar</jfxMainAppJarName>
+					<vendor>Les Consacres de l Eternel</vendor>
+					<bundler>EXE</bundler>
+					<additionalAppResources>songs/</additionalAppResources>
+					<nativeReleaseVersion>${project.version}</nativeReleaseVersion>
+					<needShortcut>true</needShortcut>
+					<needMenu>true</needMenu>
+					<appName>ConsacreBeamer</appName>
+					<verbose>true</verbose>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.5.1</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 
 	<distributionManagement>
 		<repository>

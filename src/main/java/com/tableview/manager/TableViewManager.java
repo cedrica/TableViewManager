@@ -218,6 +218,8 @@ public class TableViewManager<T> {
 									item = Helper.customFormat(formatter.pattern(), item);
 								} else if (formatter.formatterTyp() == FormatterTyp.LOCALDATE) {
 									item = Helper.customLocalDateFormat(formatter.pattern(), (LocalDate) item);
+								}else if (formatter.formatterTyp() == FormatterTyp.LOCALDATETIME) {
+									item = Helper.customLocalDateFormat(formatter.pattern(), (LocalDateTime) item);
 								}
 								label = new Label(item.toString());
 							}

@@ -93,4 +93,10 @@ public class Helper {
 		return localDateTime.format(dateTimeFormatter);
 
 	}
+	
+	public static String customLocalDateFormat(String pattern, LocalDateTime value) {
+		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
+		return value.format(dateTimeFormatter);
+
+	}
 }
