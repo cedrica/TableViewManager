@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -196,9 +197,8 @@ public class TableViewManager<T> {
 		this.tableView.getColumns().setAll(listOfColumns);
 	}
 
-	private void renderColumnCells(TableColumn column) {
+	private void renderColumnCells(final TableColumn column) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
-			@Override
 			public TableCell call(TableColumn param) {
 				TableCell cell = new TableCell() {
 
@@ -380,7 +380,11 @@ public class TableViewManager<T> {
 		} else if (att.getType().isAssignableFrom(Date.class) || att.getType().isAssignableFrom(LocalDate.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Date>(att.getName()));
 			// tableColumn.setConverterClazz(DateStringConverter.class);
-		} else if (att.getType().isAssignableFrom(Float.class) || att.getType().isAssignableFrom(float.class)
+		}  else if (att.getType().isAssignableFrom(LocalDateTime.class)) {
+			tableColumn.setCellValueFactory(new PropertyValueFactory<T, LocalDateTime>(att.getName()));
+			// tableColumn.setConverterClazz(DateStringConverter.class);
+		}
+		else if (att.getType().isAssignableFrom(Float.class) || att.getType().isAssignableFrom(float.class)
 				|| att.getType().isAssignableFrom(SimpleFloatProperty.class)) {
 			tableColumn.setCellValueFactory(new PropertyValueFactory<T, Float>(att.getName()));
 			// tableColumn.setConverterClazz(FloatStringConverter.class);
@@ -402,10 +406,9 @@ public class TableViewManager<T> {
 	 * @param node
 	 * @param direction
 	 */
-	private void applyGraphic(TableColumn column, Node node) {
+	private void applyGraphic(TableColumn column, final Node node) {
 		column.setCellFactory(new Callback<TableColumn, TableCell>() {
 
-			@Override
 			public TableCell call(TableColumn param) {
 				TableCell cell = new TableCell() {
 
@@ -439,7 +442,7 @@ public class TableViewManager<T> {
 	 * @param tabColumn
 	 * @param converterClazz
 	 */
-	public void setTextFieldTableCellFactory(TableColumn column, Class converterClazz) {
+	public void setTextFieldTableCellFactory(TableColumn column, final Class converterClazz) {
 		if (column == null)
 			return;
 		if (converterClazz == null)
